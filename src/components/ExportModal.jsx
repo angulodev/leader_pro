@@ -65,7 +65,7 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
   const sc     = s => STATUS_CFG[s] || STATUS_CFG.planning
   const health = portfolioHealth(projects)
   const hl     = healthLabel(health)
-  const milestones = style.showMilestones && reportType === 'full' ? upcomingMilestones(detailData, projects) : []
+  const milestones = style.showMilestones ? upcomingMilestones(detailData, projects) : []
   const allRisks   = style.showRiskSummary ? projects.flatMap(p =>
     (detailData[p.id]?.risks || []).map(r => ({ ...r, projectName: p.name }))
   ).sort((a,b) => ['high','medium','low'].indexOf(a.severity) - ['high','medium','low'].indexOf(b.severity)) : []
@@ -612,8 +612,10 @@ export default function ExportModal({ onClose }) {
               <label className="form-label">Tipo de reporte</label>
               <div className="status-list">
                 {[
-                  {v:'summary', icon:'table_chart',  label:'Vista global',     desc:'Semáforos + tabla resumen + riesgos consolidados'},
-                  {v:'full',    icon:'description',   label:'Reporte completo', desc:'Vista global + detalle de cada proyecto (tareas, riesgos, equipo)'},
+                  {v:'summary', icon:'table_chart', label:'Vista global',
+                   desc:'Portada · Semáforo de salud · Tabla resumen · Riesgos consolidados · Próximos hitos'},
+                  {v:'full',    icon:'description', label:'Reporte completo',
+                   desc:'Todo lo anterior + una página de detalle por cada proyecto (tareas, riesgos y equipo)'},
                 ].map(o=>(
                   <button key={o.v} type="button"
                     className={`status-list-item ${reportType===o.v?'sl-active selected':''}`}
