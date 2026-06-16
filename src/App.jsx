@@ -1,92 +1,86 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom'
 import Dashboard from './components/Dashboard'
 import Projects from './components/Projects'
 import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
 import Team from './components/Team'
 import Reports from './components/Reports'
-import { getProjects, getActivity, getUserPrefs } from './lib/supabase'
+import Notifications from './components/Notifications'
 import UserPanel, { applyTheme, THEMES } from './components/UserPanel'
 import ExportModal from './components/ExportModal'
-import Notifications from './components/Notifications'
+import { getProjects, getActivity, getUserPrefs } from './lib/supabase'
 import './index.css'
 
 const NAV = [
-  { id: 'dashboard', icon: 'grid_view',      label: 'Dashboard' },
-  { id: 'projects',  icon: 'folder_open',    label: 'Proyectos' },
-  { id: 'team',      icon: 'groups',         label: 'Equipo'    },
-  { id: 'workload',  icon: 'balance',        label: 'Carga'     },
-  { id: 'reports',   icon: 'bar_chart',      label: 'Reportes'  },
-  { id: 'export',    icon: 'picture_as_pdf', label: 'Exportar'  },
+  { id: 'dashboard', path: '/',          icon: 'grid_view',      label: 'Dashboard' },
+  { id: 'projects',  path: '/projects',  icon: 'folder_open',    label: 'Proyectos' },
+  { id: 'team',      path: '/team',      icon: 'groups',         label: 'Equipo'    },
+  { id: 'workload',  path: '/workload',  icon: 'balance',        label: 'Carga'     },
+  { id: 'reports',   path: '/reports',   icon: 'bar_chart',      label: 'Reportes'  },
+  { id: 'export',    path: null,         icon: 'picture_as_pdf', label: 'Exportar'  },
 ]
 
-export default function App() {
-  const [screen, setScreen]               = useState('dashboard')
-  const [selectedProject, setSelectedProject] = useState(null)
-  const [sideOpen, setSideOpen]           = useState(window.innerWidth > 640)
-  const [projectCount, setProjectCount]   = useState(null)
-  const [notifOpen, setNotifOpen]         = useState(false)
-  const [userPanelOpen, setUserPanelOpen] = useState(false)
-  const [exportOpen, setExportOpen]       = useState(false)
+// ── Inner app (needs router context) ──────────────
+function AppInner() {
+  const navigate  = useNavigate()
+  const location  = useLocation()
+
+  const [sideOpen,       setSideOpen]       = useState(window.innerWidth > 640)
+  const [notifOpen,      setNotifOpen]      = useState(false)
+  const [userPanelOpen,  setUserPanelOpen]  = useState(false)
+  const [exportOpen,     setExportOpen]     = useState(false)
+  const [projectCount,   setProjectCount]   = useState(null)
   const [activeProjects, setActiveProjects] = useState([])
-  const [userPrefs, setUserPrefs]         = useState(getUserPrefs)
-  const [unreadCount, setUnreadCount]     = useState(0)
+  const [unreadCount,    setUnreadCount]    = useState(0)
+  const [userPrefs,      setUserPrefs]      = useState(getUserPrefs)
 
   useEffect(() => {
     getProjects().then(p => {
       setProjectCount(p.length)
-      // Active projects for sidebar: active, at-risk or planning, max 5
-      const active = p.filter(x => ['active','at-risk','planning'].includes(x.status))
-        .sort((a,b) => new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at))
-        .slice(0, 5)
-      setActiveProjects(active)
-    }).catch(() => setProjectCount(0))
-    // Apply saved theme
-    const prefs = getUserPrefs()
-    if (prefs.themeId) {
-      const t = THEMES.find(t => t.id === prefs.themeId)
-      if (t) applyTheme(t)
-    }
-    if (prefs.compact) document.documentElement.classList.add('compact')
-    // Count unread notifications
+      setActiveProjects(
+        p.filter(x => ['active','at-risk','planning'].includes(x.status))
+          .sort((a,b) => new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at))
+          .slice(0, 6)
+      )
+    }).catch(() => {})
     getActivity(20).then(items => {
       const read = JSON.parse(localStorage.getItem('alp_read') || '[]')
       setUnreadCount(items.filter(i => !read.includes(i.id)).length)
     }).catch(() => {})
+    const prefs = getUserPrefs()
+    if (prefs.themeId) { const t = THEMES.find(t => t.id === prefs.themeId); if (t) applyTheme(t) }
+    if (prefs.compact) document.documentElement.classList.add('compact')
   }, [])
 
-  function navigate(id) {
-    if (id === 'export') {
-      setExportOpen(true)
-      setSideOpen(false)
-      return
-    }
-    setScreen(id)
-    setSelectedProject(null)
-    setSideOpen(false)
+  // Current nav id from path
+  const activeNav = location.pathname === '/'           ? 'dashboard'
+    : location.pathname.startsWith('/projects/')        ? 'projects'
+    : location.pathname.startsWith('/projects')         ? 'projects'
+    : location.pathname.startsWith('/team')             ? 'team'
+    : location.pathname.startsWith('/workload')         ? 'workload'
+    : location.pathname.startsWith('/reports')          ? 'reports'
+    : 'dashboard'
+
+  const STATUS_COLOR = {
+    active:'#10b981','at-risk':'#f59e0b',planning:'#3b82f6',
+    'on-hold':'#8b5cf6',backlog:'#94a3b8',completed:'#06b6d4'
   }
 
-  function selectProject(p) {
-    setSelectedProject(p)
-    setScreen('project-detail')
+  function goNav(nav) {
+    if (nav.path === null) { setExportOpen(true); setSideOpen(false); return }
+    navigate(nav.path)
     setSideOpen(false)
   }
-
-  const activeNav = screen === 'project-detail' ? 'projects' : screen
-  const isExportActive = exportOpen
 
   return (
     <div className="app">
       {/* ── TOP NAV ── */}
       <header className="topnav">
-        <button
-          className="icon-btn mobile-menu-btn"
-          onClick={() => setSideOpen(o => !o)}
-          aria-label="Menú"
-        >
+        <button className="icon-btn mobile-menu-btn" onClick={() => setSideOpen(o => !o)}>
           <span className="mat-icon">{sideOpen ? 'close' : 'menu'}</span>
         </button>
-        <div className="brand">
+        <div className="brand" onClick={() => navigate('/')} style={{cursor:'pointer'}}>
           <div className="brand-icon"><span className="mat-icon">hub</span></div>
           <span className="brand-name">Area Leader Pro</span>
         </div>
@@ -96,16 +90,13 @@ export default function App() {
         </div>
         <div className="topnav-actions">
           <div style={{ position: 'relative' }}>
-            <button className="icon-btn notif-btn" aria-label="Notificaciones"
-              onClick={() => setNotifOpen(o => !o)}>
+            <button className="icon-btn notif-btn"
+              onClick={() => { setNotifOpen(o => !o); setUserPanelOpen(false) }}>
               <span className="mat-icon">{notifOpen ? 'notifications' : 'notifications_none'}</span>
               {unreadCount > 0 && <span className="notif-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </button>
-            {notifOpen && (
-              <Notifications onClose={() => setNotifOpen(false)} />
-            )}
+            {notifOpen && <Notifications onClose={() => setNotifOpen(false)} />}
           </div>
-
           <div style={{ position: 'relative' }}>
             <div className="avatar-circle topnav-avatar"
               style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
@@ -118,69 +109,52 @@ export default function App() {
       </header>
 
       <div className="layout">
-        {/* ── SIDEBAR OVERLAY ── */}
         {sideOpen && <div className="sidebar-overlay" onClick={() => setSideOpen(false)} />}
 
         {/* ── SIDEBAR ── */}
         <aside className={`sidenav ${sideOpen ? 'open' : ''}`}>
           <div className="sidenav-inner">
-
-            {/* Main nav */}
             <nav className="sidenav-main">
               <div className="sidenav-section-label">Principal</div>
               {NAV.map(n => (
-                <button
-                  key={n.id}
-                  className={`nav-item ${n.id === 'export' ? (isExportActive ? 'active' : '') : activeNav === n.id ? 'active' : ''}`}
-                  onClick={() => navigate(n.id)}
-                >
+                <button key={n.id}
+                  className={`nav-item ${n.id === 'export' ? (exportOpen ? 'active' : '') : activeNav === n.id ? 'active' : ''}`}
+                  onClick={() => goNav(n)}>
                   <span className="mat-icon nav-icon">{n.icon}</span>
                   <span>{n.label}</span>
-                  {n.id === 'projects' && projectCount > 0 && <span className="nav-badge">{projectCount}</span>}
+                  {n.id === 'projects' && projectCount > 0 &&
+                    <span className="nav-badge">{projectCount}</span>}
                 </button>
               ))}
             </nav>
 
-            {/* Active projects — compact, no wasted space */}
             <div className="sidenav-projects-section">
               <div className="sidenav-divider" />
               <div className="sidenav-section-label">Proyectos activos</div>
               {activeProjects.length === 0
                 ? <div style={{fontSize:11,color:'var(--text-muted)',padding:'4px 10px'}}>Sin proyectos activos</div>
-                : activeProjects.map(p => {
-                  const sc = {
-                    'active':   '#10b981',
-                    'at-risk':  '#f59e0b',
-                    'planning': '#3b82f6',
-                    'on-hold':  '#8b5cf6',
-                    'backlog':  '#94a3b8',
-                    'completed':'#06b6d4',
-                  }
-                  return (
-                    <button key={p.id} className="nav-item nav-item-project"
-                      onClick={() => { selectProject(p); setSideOpen(false) }}>
-                      <span className="project-dot" style={{ background: sc[p.status] || 'var(--accent)' }} />
-                      <span className="nav-item-project-label">{p.name}</span>
-                    </button>
-                  )
-                })
+                : activeProjects.map(p => (
+                  <button key={p.id} className="nav-item nav-item-project"
+                    onClick={() => { navigate(`/projects/${p.id}`); setSideOpen(false) }}>
+                    <span className="project-dot" style={{ background: STATUS_COLOR[p.status] || 'var(--accent)' }} />
+                    <span className="nav-item-project-label">{p.name}</span>
+                  </button>
+                ))
               }
             </div>
 
-            {/* Bottom */}
             <div className="sidenav-bottom">
               <div className="sidenav-divider" />
-              <button className="nav-item" onClick={() => navigate('settings')}>
+              <button className="nav-item" onClick={() => { navigate('/settings'); setSideOpen(false) }}>
                 <span className="mat-icon nav-icon">settings</span>
                 <span>Configuración</span>
               </button>
-
-              {/* User info at bottom */}
-              <div className="sidenav-user" onClick={() => { setUserPanelOpen(true); setSideOpen(false) }}
-                style={{ cursor:'pointer', borderRadius:'var(--radius)', transition:'background .12s' }}
+              <div className="sidenav-user"
+                onClick={() => { setUserPanelOpen(true); setSideOpen(false) }}
+                style={{cursor:'pointer',borderRadius:'var(--radius)',transition:'background .12s'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                <div className="avatar-circle" style={{ width:32, height:32, background: userPrefs.color||'#1e293b', fontSize:12, flexShrink:0 }}>
+                <div className="avatar-circle" style={{width:32,height:32,background:userPrefs.color||'#1e293b',fontSize:12,flexShrink:0}}>
                   {(userPrefs.name||'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
                 </div>
                 <div className="sidenav-user-info">
@@ -195,39 +169,90 @@ export default function App() {
 
         {/* ── MAIN ── */}
         <main className="main">
-          {screen === 'dashboard'      && <Dashboard onNavigate={navigate} onExport={() => setExportOpen(true)} />}
-          {screen === 'projects'       && <Projects onSelectProject={selectProject} />}
-          {screen === 'project-detail' && <ProjectDetail project={selectedProject} onBack={() => navigate('projects')} />}
-          {screen === 'team'           && <Team />}
-          {screen === 'workload'       && <Workload />}
-          {screen === 'reports'  && <Reports />}
-          {screen === 'settings' && (
-            <div className="screen-content">
-              <div className="page-header"><h1 className="page-title">Configuración</h1></div>
-              <div className="card" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-                <span className="mat-icon" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>settings</span>
-                Módulo disponible próximamente
+          <Routes>
+            <Route path="/"           element={<Dashboard onNavigate={p=>navigate(p==='projects'?'/projects':p==='team'?'/team':p==='workload'?'/workload':'/') } onExport={() => setExportOpen(true)} />} />
+            <Route path="/projects"   element={<Projects  onSelectProject={p => navigate(`/projects/${p.id}`, { state: { project: p } })} />} />
+            <Route path="/projects/:id" element={<ProjectDetailRoute />} />
+            <Route path="/team"       element={<Team />} />
+            <Route path="/workload"   element={<Workload />} />
+            <Route path="/reports"    element={<Reports />} />
+            <Route path="/settings"   element={
+              <div className="screen-content">
+                <div className="page-header"><h1 className="page-title">Configuración</h1></div>
+                <div className="card" style={{textAlign:'center',padding:48,color:'var(--text-muted)'}}>
+                  <span className="mat-icon" style={{fontSize:40,display:'block',marginBottom:12}}>settings</span>
+                  Módulo disponible próximamente
+                </div>
               </div>
-            </div>
-          )}
+            } />
+            <Route path="*" element={<Dashboard onNavigate={p=>navigate(p)} onExport={() => setExportOpen(true)} />} />
+          </Routes>
         </main>
       </div>
 
-      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
-
-      {/* ── BOTTOM NAV (mobile) ── */}
+      {/* ── BOTTOM NAV ── */}
       <nav className="bottom-nav">
         {NAV.map(n => (
-          <button
-            key={n.id}
-            className={`bottom-nav-item ${n.id === 'export' ? (isExportActive ? 'active' : '') : activeNav === n.id ? 'active' : ''}`}
-            onClick={() => navigate(n.id)}
-          >
+          <button key={n.id}
+            className={`bottom-nav-item ${n.id === 'export' ? (exportOpen ? 'active' : '') : activeNav === n.id ? 'active' : ''}`}
+            onClick={() => goNav(n)}>
             <span className="mat-icon">{n.icon}</span>
             <span>{n.label}</span>
           </button>
         ))}
       </nav>
+
+      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
     </div>
+  )
+}
+
+// ── ProjectDetail route wrapper ────────────────────
+function ProjectDetailRoute() {
+  const { id } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [project, setProject] = useState(location.state?.project || null)
+  const [loading, setLoading] = useState(!location.state?.project)
+
+  useEffect(() => {
+    if (!project) {
+      setLoading(true)
+      getProjects().then(projects => {
+        const found = projects.find(p => p.id === id)
+        if (found) setProject(found)
+        else navigate('/projects')
+      }).finally(() => setLoading(false))
+    }
+  }, [id])
+
+  if (loading) return (
+    <div className="screen-content">
+      <div style={{padding:32,textAlign:'center',color:'var(--text-muted)'}}>
+        <span className="mat-icon spin" style={{fontSize:32}}>refresh</span>
+      </div>
+    </div>
+  )
+
+  return (
+    <ProjectDetail
+      project={project}
+      onBack={() => navigate('/projects')}
+      onProjectUpdated={() => {
+        getProjects().then(projects => {
+          const found = projects.find(p => p.id === id)
+          if (found) setProject(found)
+        })
+      }}
+    />
+  )
+}
+
+// ── Root with BrowserRouter ────────────────────────
+export default function App() {
+  return (
+    <BrowserRouter basename="/leader_pro">
+      <AppInner />
+    </BrowserRouter>
   )
 }
