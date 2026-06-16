@@ -40,15 +40,30 @@ export function ProgressBar({ actual, estimated }) {
   )
 }
 
-export function KPICard({ label, value, sub, colorClass, icon }) {
+export function KPICard({ label, value, sub, colorClass, icon, onClick, hint }) {
+  const isClickable = !!onClick
   return (
-    <div className={`kpi-card ${colorClass}`}>
-      <div className="kpi-icon-wrap">
-        <span className="mat-icon">{icon}</span>
+    <div
+      className={`kpi-card ${colorClass} ${isClickable ? 'kpi-card-clickable' : ''}`}
+      onClick={onClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? e => e.key === 'Enter' && onClick() : undefined}
+    >
+      <div className="kpi-card-top">
+        <div className="kpi-icon-wrap">
+          <span className="mat-icon">{icon}</span>
+        </div>
+        {isClickable && (
+          <span className="kpi-arrow">
+            <span className="mat-icon">chevron_right</span>
+          </span>
+        )}
       </div>
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
+      {hint && <div className="kpi-hint"><span className="mat-icon">touch_app</span>{hint}</div>}
     </div>
   )
 }

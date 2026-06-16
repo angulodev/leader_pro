@@ -52,10 +52,10 @@ export default function Dashboard({ onNavigate }) {
         {loading ? <>
           <Skeleton h={96} /><Skeleton h={96} /><Skeleton h={96} /><Skeleton h={96} />
         </> : <>
-          <KPICard label="Total proyectos" value={kpi?.totalProjects} sub="Cartera activa" colorClass="blue" icon="folder_open" />
-          <KPICard label="Riesgos activos" value={kpi?.activeRisks} sub="Requieren atención" colorClass="amber" icon="warning_amber" />
-          <KPICard label="Capacidad equipo" value={`${kpi?.teamSize ? 84 : '—'}%`} sub={`${kpi?.teamSize} personas activas`} colorClass="green" icon="groups" />
-          <KPICard label="Progreso general" value={`${kpi?.avgProgress}%`} sub="+3.2% vs semana pasada" colorClass="purple" icon="trending_up" />
+          <KPICard label="Total proyectos" value={kpi?.totalProjects} sub="Cartera activa" colorClass="blue" icon="folder_open" onClick={() => onNavigate('projects')} hint="Ver proyectos" />
+          <KPICard label="Riesgos activos" value={kpi?.activeRisks} sub="Requieren atención" colorClass="amber" icon="warning_amber" onClick={() => onNavigate('projects')} hint="Ver proyectos" />
+          <KPICard label="Capacidad equipo" value={`${kpi?.teamSize ? 84 : '—'}%`} sub={`${kpi?.teamSize} personas activas`} colorClass="green" icon="groups" onClick={() => onNavigate('team')} hint="Ver equipo" />
+          <KPICard label="Progreso general" value={`${kpi?.avgProgress}%`} sub="+3.2% vs semana pasada" colorClass="purple" icon="trending_up" onClick={() => onNavigate('workload')} hint="Ver carga" />
         </>}
       </div>
 

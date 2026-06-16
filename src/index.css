@@ -311,7 +311,7 @@ body {
   width: 32px; height: 32px;
   border-radius: var(--radius);
   display: flex; align-items: center; justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 .kpi-card.blue   .kpi-icon-wrap { background: var(--accent-bg);  color: var(--accent); }
 .kpi-card.green  .kpi-icon-wrap { background: var(--success-bg); color: var(--success); }
@@ -889,3 +889,31 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 380px) {
   .team-grid-members { grid-template-columns: 1fr; }
 }
+
+/* ── KPI CARD CLICKABLE ── */
+.kpi-card-clickable {
+  cursor: pointer;
+  transition: box-shadow .15s, transform .12s;
+}
+.kpi-card-clickable:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.kpi-card-clickable:active {
+  transform: translateY(0);
+}
+.kpi-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.kpi-icon-wrap { margin-bottom: 0; }
+.kpi-arrow { color: var(--text-muted); display: flex; align-items: center; }
+.kpi-arrow .mat-icon { font-size: 18px; }
+.kpi-hint {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 10px; color: var(--text-muted);
+  margin-top: 6px; opacity: .7;
+}
+.kpi-hint .mat-icon { font-size: 12px; }
