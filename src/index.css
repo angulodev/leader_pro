@@ -2096,3 +2096,6 @@ tbody tr:last-child td { border-bottom: none; }
   .modal-export .modal-footer { flex-direction: column; gap: 8px; }
   .modal-export .modal-footer > span { display: none; }
 }
+
+.toast-info { background: #1e293b; color: white; }
+.toast-info .mat-icon { color: var(--accent); }

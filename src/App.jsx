@@ -5,7 +5,7 @@ import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
 import Team from './components/Team'
 import Reports from './components/Reports'
-import { getProjects, getActivity, getActiveProjects, getUserPrefs } from './lib/supabase'
+import { getProjects, getActivity, getUserPrefs } from './lib/supabase'
 import UserPanel, { applyTheme, THEMES } from './components/UserPanel'
 import ExportModal from './components/ExportModal'
 import Notifications from './components/Notifications'
@@ -33,8 +33,14 @@ export default function App() {
   const [unreadCount, setUnreadCount]     = useState(0)
 
   useEffect(() => {
-    getProjects().then(p => setProjectCount(p.length)).catch(() => setProjectCount(0))
-    getActiveProjects().then(setActiveProjects).catch(() => {})
+    getProjects().then(p => {
+      setProjectCount(p.length)
+      // Active projects for sidebar: active, at-risk or planning, max 5
+      const active = p.filter(x => ['active','at-risk','planning'].includes(x.status))
+        .sort((a,b) => new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at))
+        .slice(0, 5)
+      setActiveProjects(active)
+    }).catch(() => setProjectCount(0))
     // Apply saved theme
     const prefs = getUserPrefs()
     if (prefs.themeId) {
@@ -141,12 +147,23 @@ export default function App() {
               <div className="sidenav-section-label">Proyectos activos</div>
               {activeProjects.length === 0
                 ? <div style={{fontSize:11,color:'var(--text-muted)',padding:'4px 10px'}}>Sin proyectos activos</div>
-                : activeProjects.map(p => (
-                  <button key={p.id} className="nav-item nav-item-project" onClick={() => navigate('projects')}>
-                    <span className="project-dot" style={{ background: p.leader_color || 'var(--accent)' }} />
-                    <span className="nav-item-project-label">{p.name}</span>
-                  </button>
-                ))
+                : activeProjects.map(p => {
+                  const sc = {
+                    'active':   '#10b981',
+                    'at-risk':  '#f59e0b',
+                    'planning': '#3b82f6',
+                    'on-hold':  '#8b5cf6',
+                    'backlog':  '#94a3b8',
+                    'completed':'#06b6d4',
+                  }
+                  return (
+                    <button key={p.id} className="nav-item nav-item-project"
+                      onClick={() => { selectProject(p); setSideOpen(false) }}>
+                      <span className="project-dot" style={{ background: sc[p.status] || 'var(--accent)' }} />
+                      <span className="nav-item-project-label">{p.name}</span>
+                    </button>
+                  )
+                })
               }
             </div>
 

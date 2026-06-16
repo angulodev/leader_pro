@@ -47,6 +47,8 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
   const [taskForm, setTaskForm]     = useState(EMPTY_TASK)
   const [savingTask, setSavingTask] = useState(false)
   const [deletingTask, setDeletingTask] = useState(null)
+  const [taskConfirm, setTaskConfirm]   = useState(null) // task to confirm delete
+  const [toast, setToast]               = useState(null)
   // Risk modal
   const [riskModal, setRiskModal]     = useState(null)
   const [riskForm, setRiskForm]       = useState({ title:'', description:'', severity:'medium', time_delta:'', budget_delta:'' })
@@ -77,6 +79,13 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
   useEffect(() => { loadAll() }, [project?.id])
 
   if (!project) return null
+
+  // Auto-clear toast
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   // ── Comment ──
   const handleComment = async () => {
@@ -123,11 +132,46 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
     } catch(e) { alert(e.message) }
     finally { setSavingTask(false) }
   }
-  async function handleDeleteTask(id, e) {
+  function handleDeleteTask(task, e) {
     e.stopPropagation()
-    setDeletingTask(id)
-    try { await deleteTask(id); loadAll() }
-    catch(e) { alert(e.message) }
+    // If already in 'todo' (draft) state, show confirm to delete permanently
+    // Otherwise, ask: complete or move to draft first
+    setTaskConfirm(task)
+  }
+
+  async function confirmDeleteTask() {
+    const task = taskConfirm
+    setTaskConfirm(null)
+    if (task.status !== 'todo') {
+      // Move to todo (draft) first instead of deleting
+      setDeletingTask(task.id)
+      try {
+        await createTask({ ...task, id: task.id, project_id: task.project_id,
+          assigned_to: task.assigned_to || null, status: 'todo' })
+        loadAll()
+        setToast({ msg: `"${task.title}" movida a Pendiente. Elimínala desde ese estado.`, type: 'info' })
+      } catch(e) { alert(e.message) }
+      finally { setDeletingTask(null) }
+    } else {
+      // Already in draft/todo — delete permanently
+      setDeletingTask(task.id)
+      try { await deleteTask(task.id); loadAll()
+        setToast({ msg: `Tarea eliminada permanentemente.`, type: 'success' })
+      }
+      catch(e) { alert(e.message) }
+      finally { setDeletingTask(null) }
+    }
+  }
+
+  async function confirmCompleteTask(task) {
+    setTaskConfirm(null)
+    setDeletingTask(task.id)
+    try {
+      await createTask({ ...task, id: task.id, project_id: task.project_id,
+        assigned_to: task.assigned_to || null, status: 'completed' })
+      loadAll()
+      setToast({ msg: `"${task.title}" marcada como completada. ✅`, type: 'success' })
+    } catch(e) { alert(e.message) }
     finally { setDeletingTask(null) }
   }
 
@@ -364,7 +408,7 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
                             <td onClick={e=>e.stopPropagation()}>
                               <button className="icon-btn icon-btn-danger"
                                 disabled={deletingTask===t.id}
-                                onClick={e=>handleDeleteTask(t.id,e)}>
+                                onClick={e=>handleDeleteTask(t,e)}>
                                 <span className="mat-icon">{deletingTask===t.id?'hourglass_empty':'delete_outline'}</span>
                               </button>
                             </td>
@@ -614,6 +658,60 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
         </div>
       )}
 
+      {/* ── Task confirm modal ── */}
+      {taskConfirm && (
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setTaskConfirm(null)}}>
+          <div className="modal modal-sm">
+            <div className="modal-header">
+              <h2 className="modal-title">¿Qué deseas hacer?</h2>
+              <button className="icon-btn" onClick={()=>setTaskConfirm(null)}>
+                <span className="mat-icon">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:4}}>
+                <strong>"{taskConfirm.title}"</strong>
+              </p>
+              <p style={{fontSize:12,color:'var(--text-muted)'}}>
+                Estado actual: <strong>{taskConfirm.status}</strong>
+              </p>
+            </div>
+            <div className="modal-footer" style={{flexDirection:'column',gap:8}}>
+              {taskConfirm.status !== 'completed' && (
+                <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}
+                  onClick={()=>confirmCompleteTask(taskConfirm)}>
+                  <span className="mat-icon">check_circle</span> Marcar como completada
+                </button>
+              )}
+              {taskConfirm.status !== 'todo' ? (
+                <button className="btn btn-ghost" style={{width:'100%',justifyContent:'center'}}
+                  onClick={()=>confirmDeleteTask()}>
+                  <span className="mat-icon">archive</span> Mover a Pendiente (borrador)
+                </button>
+              ) : (
+                <button className="btn btn-danger" style={{width:'100%',justifyContent:'center'}}
+                  onClick={()=>confirmDeleteTask()}>
+                  <span className="mat-icon">delete_forever</span> Eliminar permanentemente
+                </button>
+              )}
+              <button className="btn btn-ghost" style={{width:'100%',justifyContent:'center'}}
+                onClick={()=>setTaskConfirm(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toast ── */}
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          <span className="mat-icon">
+            {toast.type==='success'?'check_circle':toast.type==='info'?'info':'error_outline'}
+          </span>
+          {toast.msg}
+        </div>
+      )}
     </div>
   )
 }
