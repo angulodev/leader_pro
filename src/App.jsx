@@ -17,7 +17,7 @@ const NAV = [
 export default function App() {
   const [screen, setScreen]               = useState('dashboard')
   const [selectedProject, setSelectedProject] = useState(null)
-  const [sideOpen, setSideOpen]           = useState(false)
+  const [sideOpen, setSideOpen]           = useState(window.innerWidth > 640)
 
   function navigate(id) {
     setScreen(id)
