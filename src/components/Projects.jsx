@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { getProjects, deleteProject } from '../lib/supabase'
 import { StatusTag, Avatar, ProgressBar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
+import ExportModal from './ExportModal'
 
 export default function Projects({ onSelectProject }) {
   const [projects, setProjects]       = useState([])
   const [loading, setLoading]         = useState(true)
   const [search, setSearch]           = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [modal, setModal]             = useState(null) // null | 'new' | project obj
+  const [modal, setModal]             = useState(null)
+  const [exportOpen, setExportOpen]   = useState(false) // null | 'new' | project obj
   const [deleting, setDeleting]       = useState(null)
 
   const load = () => {
@@ -45,7 +47,7 @@ export default function Projects({ onSelectProject }) {
           <p className="page-sub">{projects.length} proyectos · Q2 2026</p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-ghost"><span className="mat-icon">download</span><span>Exportar</span></button>
+          <button className="btn btn-ghost" onClick={() => setExportOpen(true)}><span className="mat-icon">picture_as_pdf</span><span>Exportar</span></button>
           <button className="btn btn-primary" onClick={() => setModal('new')}>
             <span className="mat-icon">add</span><span>Nuevo proyecto</span>
           </button>
@@ -156,6 +158,9 @@ export default function Projects({ onSelectProject }) {
       <button className="fab" onClick={() => setModal('new')} title="Nuevo proyecto">
         <span className="mat-icon">add</span>
       </button>
+
+      {/* Export Modal */}
+      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
 
       {/* Modal */}
       {modal && (
