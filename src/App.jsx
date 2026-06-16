@@ -7,15 +7,17 @@ import Team from './components/Team'
 import Reports from './components/Reports'
 import { getProjects, getActivity, getActiveProjects, getUserPrefs } from './lib/supabase'
 import UserPanel, { applyTheme, THEMES } from './components/UserPanel'
+import ExportModal from './components/ExportModal'
 import Notifications from './components/Notifications'
 import './index.css'
 
 const NAV = [
-  { id: 'dashboard', icon: 'grid_view',    label: 'Dashboard'  },
-  { id: 'projects',  icon: 'folder_open',  label: 'Proyectos'  },
-  { id: 'team',      icon: 'groups',       label: 'Equipo'     },
-  { id: 'workload',  icon: 'balance',      label: 'Carga'      },
-  { id: 'reports',   icon: 'bar_chart',    label: 'Reportes'   },
+  { id: 'dashboard', icon: 'grid_view',      label: 'Dashboard' },
+  { id: 'projects',  icon: 'folder_open',    label: 'Proyectos' },
+  { id: 'team',      icon: 'groups',         label: 'Equipo'    },
+  { id: 'workload',  icon: 'balance',        label: 'Carga'     },
+  { id: 'reports',   icon: 'bar_chart',      label: 'Reportes'  },
+  { id: 'export',    icon: 'picture_as_pdf', label: 'Exportar'  },
 ]
 
 export default function App() {
@@ -25,6 +27,7 @@ export default function App() {
   const [projectCount, setProjectCount]   = useState(null)
   const [notifOpen, setNotifOpen]         = useState(false)
   const [userPanelOpen, setUserPanelOpen] = useState(false)
+  const [exportOpen, setExportOpen]       = useState(false)
   const [activeProjects, setActiveProjects] = useState([])
   const [userPrefs, setUserPrefs]         = useState(getUserPrefs)
   const [unreadCount, setUnreadCount]     = useState(0)
@@ -47,6 +50,11 @@ export default function App() {
   }, [])
 
   function navigate(id) {
+    if (id === 'export') {
+      setExportOpen(true)
+      setSideOpen(false)
+      return
+    }
     setScreen(id)
     setSelectedProject(null)
     setSideOpen(false)
@@ -59,6 +67,7 @@ export default function App() {
   }
 
   const activeNav = screen === 'project-detail' ? 'projects' : screen
+  const isExportActive = exportOpen
 
   return (
     <div className="app">
@@ -116,7 +125,7 @@ export default function App() {
               {NAV.map(n => (
                 <button
                   key={n.id}
-                  className={`nav-item ${activeNav === n.id ? 'active' : ''}`}
+                  className={`nav-item ${n.id === 'export' ? (isExportActive ? 'active' : '') : activeNav === n.id ? 'active' : ''}`}
                   onClick={() => navigate(n.id)}
                 >
                   <span className="mat-icon nav-icon">{n.icon}</span>
@@ -187,12 +196,14 @@ export default function App() {
         </main>
       </div>
 
+      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
+
       {/* ── BOTTOM NAV (mobile) ── */}
       <nav className="bottom-nav">
         {NAV.map(n => (
           <button
             key={n.id}
-            className={`bottom-nav-item ${activeNav === n.id ? 'active' : ''}`}
+            className={`bottom-nav-item ${n.id === 'export' ? (isExportActive ? 'active' : '') : activeNav === n.id ? 'active' : ''}`}
             onClick={() => navigate(n.id)}
           >
             <span className="mat-icon">{n.icon}</span>
