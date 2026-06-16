@@ -23,6 +23,7 @@ export async function upsertMember(member) {
     p_role:     member.role,
     p_color:    member.color || '#3b82f6',
     p_email:    member.email || null,
+    p_active:   member.active !== undefined ? member.active : true,
   })
   if (error) throw error
   return data

@@ -1410,3 +1410,27 @@ tbody tr:last-child td { border-bottom: none; }
   .tl-info { width: 90px; }
   .activity-summary-row { gap: 10px; }
 }
+
+/* ── Status toggle (team modal) ── */
+.status-toggle-row {
+  display: flex; gap: 8px;
+}
+.status-toggle-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 12px; border-radius: var(--radius);
+  border: 2px solid var(--border); background: var(--surface);
+  font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
+  cursor: pointer; transition: all .15s; color: var(--text-secondary);
+}
+.status-toggle-btn .mat-icon { font-size: 17px; }
+.status-toggle-btn.active {
+  border-color: var(--success); background: var(--success-bg); color: #047857;
+}
+.status-toggle-btn.inactive {
+  border-color: var(--error); background: var(--error-bg); color: var(--error);
+}
+.form-hint {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 6px;
+}

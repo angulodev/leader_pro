@@ -6,7 +6,7 @@ const COLORS = [
   '#3b82f6','#8b5cf6','#10b981','#f59e0b',
   '#ef4444','#06b6d4','#ec4899','#64748b',
 ]
-const EMPTY_FORM = { name: '', initials: '', role: '', color: '#3b82f6', email: '' }
+const EMPTY_FORM = { name: '', initials: '', role: '', color: '#3b82f6', email: '', active: true }
 
 function autoInitials(name) {
   return name.trim().split(' ').slice(0,2).map(w => w[0]?.toUpperCase() || '').join('')
@@ -38,7 +38,7 @@ export default function Team() {
   }
   function openEdit(m) {
     setEditing(m)
-    setForm({ name: m.name, initials: m.initials, role: m.role, color: m.color, email: m.email || '' })
+    setForm({ name: m.name, initials: m.initials, role: m.role, color: m.color, email: m.email || '', active: m.active !== false })
     setError(''); setShowModal(true)
   }
 
@@ -46,7 +46,7 @@ export default function Team() {
     if (!form.name.trim() || !form.role.trim()) { setError('Nombre y rol son obligatorios.'); return }
     setSaving(true); setError('')
     try {
-      await upsertMember({ ...form, id: editing?.id })
+      await upsertMember({ ...form, id: editing?.id, active: form.active })
       setShowModal(false); load()
     } catch(e) { setError(e.message || 'Error al guardar.') }
     finally { setSaving(false) }
@@ -202,6 +202,37 @@ export default function Team() {
                   ))}
                 </div>
               </div>
+              {/* Estado — solo visible al editar */}
+              {editing && (
+                <div className="form-group">
+                  <label className="form-label">Estado de la persona</label>
+                  <div className="status-toggle-row">
+                    <button
+                      type="button"
+                      className={`status-toggle-btn ${form.active ? 'active' : ''}`}
+                      onClick={() => setForm(f => ({ ...f, active: true }))}
+                    >
+                      <span className="mat-icon">check_circle</span>
+                      Activo
+                    </button>
+                    <button
+                      type="button"
+                      className={`status-toggle-btn ${!form.active ? 'inactive' : ''}`}
+                      onClick={() => setForm(f => ({ ...f, active: false }))}
+                    >
+                      <span className="mat-icon">block</span>
+                      Inactivo
+                    </button>
+                  </div>
+                  {!form.active && (
+                    <p className="form-hint">
+                      <span className="mat-icon" style={{fontSize:13}}>info</span>
+                      La persona no aparecerá en asignaciones ni en el equipo activo.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {error && <div className="form-error"><span className="mat-icon">error_outline</span>{error}</div>}
             </div>
             <div className="modal-footer">
