@@ -447,3 +447,72 @@ npm run preview  # Preview del build local
 ## Licencia
 
 MIT — Angulodev · Francisco Angulo · [github.com/angulodev/leader_pro](https://github.com/angulodev/leader_pro)
+
+---
+
+## Planes y monetización
+
+Area Leader Pro incluye un sistema de planes por usuario. Cada nuevo usuario recibe automáticamente el plan **Básico** (gratis) al registrarse, via trigger en Supabase.
+
+| Plan | Precio CLP | Proyectos |
+|------|-----------|-----------|
+| Básico | Gratis | 1 |
+| Inicial | $5.990/mes | 3 |
+| Pro | $10.990/mes | 10 |
+| Avanzado | $29.990/mes | 30 |
+| Ultra | $45.990/mes | 50 |
+| Enterprise | $89.990/mes | 100 + BD dedicada |
+
+### Tablas de planes
+
+- `public.plans` — catálogo de planes con precio y límite de proyectos
+- `public.user_plans` — suscripción activa de cada usuario (RLS: cada usuario ve solo la suya)
+
+### Funciones RPC relacionadas
+
+- `al_get_my_plan()` — retorna plan actual + proyectos activos del usuario
+- `al_can_create_project()` — retorna `true/false` según límite del plan
+- Trigger `on_auth_user_plan` — asigna plan básico automáticamente al registrarse
+
+### Cómo cambiar el plan de un usuario (admin SQL)
+
+```sql
+UPDATE public.user_plans
+SET plan_id = 'pro'
+WHERE user_id = 'UUID_DEL_USUARIO';
+```
+
+---
+
+## Landing page de marketing
+
+El directorio `/marketing/` contiene la landing page de venta:
+
+**URL local:** `marketing/index.html` (abrir directamente en el browser)
+
+**Secciones:**
+- Hero con propuesta de valor y acceso directo a la demo
+- Funcionalidades principales (6 cards)
+- Vista previa interactiva de la app
+- Cómo funciona (4 pasos)
+- Tabla de precios completa con los 6 planes
+- Testimonios
+- CTA final con registro
+
+**Links:** todos los CTAs apuntan a `https://angulodev.github.io/leader_pro/`
+
+**Deploy sugerido:** subir `marketing/index.html` a GitHub Pages, Netlify o Vercel como sitio estático independiente.
+
+---
+
+## Login empresarial
+
+El login incluye:
+- Panel izquierdo de branding con propuesta de valor y features
+- Panel derecho con formulario
+- Tabs: Iniciar sesión / Crear cuenta
+- Login con Google OAuth
+- Email + contraseña
+- Barra de demo rápida (rellena credenciales con un clic)
+- Link a la landing de precios
+- Responsive: en mobile el panel de branding se compacta
