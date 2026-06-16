@@ -28,8 +28,46 @@ export async function upsertMember(member) {
   return data
 }
 
-export async function deleteMember(id) {
-  const { error } = await supabase.rpc('al_delete_member', { p_id: id })
+export async function deactivateMember(id) {
+  const { error } = await supabase.rpc('al_deactivate_member', { p_id: id })
+  if (error) throw error
+}
+
+export async function activateMember(id) {
+  const { error } = await supabase.rpc('al_activate_member', { p_id: id })
+  if (error) throw error
+}
+
+export async function getAllMembers() {
+  const { data, error } = await supabase
+    .from('al_team_members_all')
+    .select('*')
+    .order('active', { ascending: false })
+    .order('name')
+  if (error) throw error
+  return data
+}
+
+// ── Proyectos CRUD ────────────────────────────────
+export async function upsertProject(project) {
+  const { data, error } = await supabase.rpc('al_upsert_project', {
+    p_id:          project.id || null,
+    p_name:        project.name,
+    p_client:      project.client || null,
+    p_status:      project.status || 'planning',
+    p_progress:    project.progress || 0,
+    p_estimated:   project.estimated || 0,
+    p_budget:      project.budget ? parseFloat(project.budget) : null,
+    p_leader_id:   project.leader_id || null,
+    p_due_date:    project.due_date || null,
+    p_description: project.description || null,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function deleteProject(id) {
+  const { error } = await supabase.rpc('al_delete_project', { p_id: id })
   if (error) throw error
 }
 
