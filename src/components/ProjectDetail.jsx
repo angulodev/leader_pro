@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   getTasksByProject, getActivity, addComment,
   createTask, deleteTask,
-  getTeamMembers, getProjectMembers, toggleProjectMember
+  getTeamMembers, getProjectMembers, toggleProjectMember,
+  getRisksByProject, upsertRisk, deleteRisk
 } from '../lib/supabase'
 import { StatusTag, Avatar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
@@ -15,12 +16,16 @@ const STATUSES = [
   { value: 'completed',   label: '✅ Completado'  },
 ]
 
-function timeAgo(iso) {
-  const diff = (Date.now() - new Date(iso)) / 1000
-  if (diff < 60)    return 'Hace un momento'
-  if (diff < 3600)  return `Hace ${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `Hace ${Math.floor(diff / 3600)}h`
-  return `Hace ${Math.floor(diff / 86400)}d`
+function formatDateTime(iso) {
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+  const time = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+  const diff = (Date.now() - d) / 1000
+  const rel = diff < 60 ? 'Ahora'
+    : diff < 3600  ? `Hace ${Math.floor(diff/60)}min`
+    : diff < 86400 ? `Hace ${Math.floor(diff/3600)}h`
+    : null
+  return rel ? `${rel} · ${date} ${time}` : `${date} · ${time}`
 }
 
 const EMPTY_TASK = { title: '', group_name: '', status: 'todo', assigned_to: '', due_date: '' }
@@ -28,6 +33,7 @@ const EMPTY_TASK = { title: '', group_name: '', status: 'todo', assigned_to: '',
 export default function ProjectDetail({ project: initialProject, onBack, onProjectUpdated }) {
   const [project, setProject]       = useState(initialProject)
   const [tab, setTab]               = useState('overview')
+  const [risks, setRisks]             = useState([])
   const [tasks, setTasks]           = useState([])
   const [activity, setActivity]     = useState([])
   const [members, setMembers]       = useState([])       // all team members
@@ -41,6 +47,11 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
   const [taskForm, setTaskForm]     = useState(EMPTY_TASK)
   const [savingTask, setSavingTask] = useState(false)
   const [deletingTask, setDeletingTask] = useState(null)
+  // Risk modal
+  const [riskModal, setRiskModal]     = useState(null)
+  const [riskForm, setRiskForm]       = useState({ title:'', description:'', severity:'medium', time_delta:'', budget_delta:'' })
+  const [savingRisk, setSavingRisk]   = useState(false)
+  const [deletingRisk, setDeletingRisk] = useState(null)
   // Team toggle
   const [togglingMember, setTogglingMember] = useState(null)
 
@@ -52,11 +63,13 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
       getActivity(20),
       getTeamMembers(),
       getProjectMembers(project.id),
-    ]).then(([t, a, m, pm]) => {
+      getRisksByProject(project.id),
+    ]).then(([t, a, m, pm, r]) => {
       setTasks(t)
       setActivity(a.filter(x => x.project_id === project.id))
       setMembers(m)
       setProjMembers(pm)
+      setRisks(r)
     }).finally(() => setLoading(false))
   }
 
@@ -116,6 +129,33 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
     try { await deleteTask(id); loadAll() }
     catch(e) { alert(e.message) }
     finally { setDeletingTask(null) }
+  }
+
+  // ── Risk handlers ──
+  function openNewRisk() {
+    setRiskForm({ title:'', description:'', severity:'medium', time_delta:'', budget_delta:'' })
+    setRiskModal('new')
+  }
+  function openEditRisk(r) {
+    setRiskForm({ title:r.title, description:r.description||'', severity:r.severity, time_delta:r.time_delta||'', budget_delta:r.budget_delta||'' })
+    setRiskModal(r)
+  }
+  async function handleSaveRisk() {
+    if (!riskForm.title.trim()) return
+    setSavingRisk(true)
+    try {
+      await upsertRisk({ ...riskForm, id: riskModal !== 'new' ? riskModal.id : null, project_id: project.id })
+      setRiskModal(null)
+      loadAll()
+    } catch(e) { alert(e.message) }
+    finally { setSavingRisk(false) }
+  }
+  async function handleDeleteRisk(id, e) {
+    e.stopPropagation()
+    setDeletingRisk(id)
+    try { await deleteRisk(id); loadAll() }
+    catch(e) { alert(e.message) }
+    finally { setDeletingRisk(null) }
   }
 
   // ── Team toggle ──
@@ -189,9 +229,9 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
       {/* ── Tabs ── */}
       <div className="card card-flush">
         <div className="tabs">
-          {['overview','tasks','team'].map(t => (
+          {['overview','tasks','risks','team'].map(t => (
             <button key={t} className={`tab-btn ${tab===t?'active':''}`} onClick={()=>setTab(t)}>
-              {t==='overview'?'Overview':t==='tasks'?`Tareas (${tasks.length})`:'Equipo'}
+              {t==='overview'?'Overview':t==='tasks'?`Tareas (${tasks.length})`:t==='risks'?`Riesgos${risks.length>0?' ('+risks.length+')':''}`:'Equipo'}
             </button>
           ))}
         </div>
@@ -264,7 +304,7 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
                             {a.actor_name && <strong>{a.actor_name}: </strong>}
                             {a.content}
                           </div>
-                          <div className="activity-time">{timeAgo(a.created_at)}</div>
+                          <div className="activity-time">{formatDateTime(a.created_at)}</div>
                         </div>
                       </div>
                     ))
@@ -332,6 +372,48 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )
+              }
+            </div>
+          )}
+
+
+          {/* ════ RISKS ════ */}
+          {tab === 'risks' && (
+            <div>
+              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+                <button className="btn btn-primary" onClick={openNewRisk}>
+                  <span className="mat-icon">add</span> Nuevo riesgo
+                </button>
+              </div>
+              {loading ? <Skeleton h={120}/> : risks.length === 0
+                ? <EmptyState icon="shield_check" title="Sin riesgos registrados" sub="Agrega un riesgo si identificas algo que pueda afectar el proyecto."/>
+                : (
+                  <div className="risks-list">
+                    {risks.map(r => (
+                      <div key={r.id} className={`risk-card risk-${r.severity}`} onClick={() => openEditRisk(r)}>
+                        <div className="risk-card-left">
+                          <div className={`risk-sev-badge sev-${r.severity}`}>
+                            {r.severity === 'high' ? '🔴 Alto' : r.severity === 'medium' ? '🟡 Medio' : '🟢 Bajo'}
+                          </div>
+                          <div className="risk-card-body">
+                            <div className="risk-card-title">{r.title}</div>
+                            {r.description && <div className="risk-card-desc">{r.description}</div>}
+                            <div className="risk-card-meta">
+                              {r.time_delta   && <span className="risk-meta-tag"><span className="mat-icon">schedule</span>{r.time_delta}</span>}
+                              {r.budget_delta && <span className="risk-meta-tag"><span className="mat-icon">payments</span>{r.budget_delta}</span>}
+                              <span className="risk-meta-date">{new Date(r.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'})}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button className="icon-btn icon-btn-danger"
+                          disabled={deletingRisk===r.id}
+                          onClick={e=>handleDeleteRisk(r.id,e)}>
+                          <span className="mat-icon">{deletingRisk===r.id?'hourglass_empty':'delete_outline'}</span>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )
               }
@@ -459,6 +541,79 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
           </div>
         </div>
       )}
+      {/* ── Risk Modal ── */}
+      {riskModal && (
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setRiskModal(null)}}>
+          <div className="modal">
+            <div className="modal-header">
+              <h2 className="modal-title">{riskModal==='new'?'Nuevo riesgo':'Editar riesgo'}</h2>
+              <button className="icon-btn" onClick={()=>setRiskModal(null)}>
+                <span className="mat-icon">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Título del riesgo *</label>
+                <input className="form-input" autoFocus value={riskForm.title}
+                  onChange={e=>setRiskForm(f=>({...f,title:e.target.value}))}
+                  placeholder="ej. Retraso en entrega de proveedor"/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Descripción</label>
+                <textarea className="form-input" rows={3} value={riskForm.description}
+                  onChange={e=>setRiskForm(f=>({...f,description:e.target.value}))}
+                  placeholder="Describe el impacto potencial…" style={{resize:'vertical'}}/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Severidad</label>
+                <div className="severity-list">
+                  {[
+                    { value:'high',   icon:'🔴', label:'Alto',  desc:'Impacto crítico, requiere acción inmediata' },
+                    { value:'medium', icon:'🟡', label:'Medio', desc:'Impacto moderado, monitorear de cerca'      },
+                    { value:'low',    icon:'🟢', label:'Bajo',  desc:'Impacto menor, registrado por precaución'  },
+                  ].map(opt => (
+                    <button key={opt.value} type="button"
+                      className={`status-list-item ${riskForm.severity===opt.value?'sl-sev-'+opt.value+' selected':''}`}
+                      onClick={()=>setRiskForm(f=>({...f,severity:opt.value}))}>
+                      <span style={{fontSize:20,flexShrink:0}}>{opt.icon}</span>
+                      <div className="sl-text">
+                        <span className="sl-label">{opt.label}</span>
+                        <span className="sl-desc">{opt.desc}</span>
+                      </div>
+                      <span className="mat-icon sl-check" style={{opacity: riskForm.severity===opt.value ? 1 : .25}}>
+                        {riskForm.severity===opt.value ? 'radio_button_checked' : 'radio_button_unchecked'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Impacto en tiempo</label>
+                  <input className="form-input" value={riskForm.time_delta}
+                    onChange={e=>setRiskForm(f=>({...f,time_delta:e.target.value}))}
+                    placeholder="ej. +5 días"/>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Impacto en costo</label>
+                  <input className="form-input" value={riskForm.budget_delta}
+                    onChange={e=>setRiskForm(f=>({...f,budget_delta:e.target.value}))}
+                    placeholder="ej. +10%"/>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setRiskModal(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleSaveRisk} disabled={savingRisk||!riskForm.title.trim()}>
+                {savingRisk
+                  ? <><span className="mat-icon spin">refresh</span> Guardando…</>
+                  : <><span className="mat-icon">check</span> {riskModal==='new'?'Crear riesgo':'Guardar'}</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

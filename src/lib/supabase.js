@@ -235,3 +235,33 @@ export async function getReportTeamLoad() {
   if (error) throw error
   return data || []
 }
+
+// ── Risks CRUD ────────────────────────────────────
+export async function getRisksByProject(projectId) {
+  const { data, error } = await supabase
+    .from('al_risks_by_project')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function upsertRisk(risk) {
+  const { data, error } = await supabase.rpc('al_upsert_risk', {
+    p_id:           risk.id || null,
+    p_project_id:   risk.project_id,
+    p_title:        risk.title,
+    p_description:  risk.description || null,
+    p_severity:     risk.severity || 'medium',
+    p_time_delta:   risk.time_delta || null,
+    p_budget_delta: risk.budget_delta || null,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function deleteRisk(id) {
+  const { error } = await supabase.rpc('al_delete_risk', { p_id: id })
+  if (error) throw error
+}

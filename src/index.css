@@ -1472,3 +1472,72 @@ tbody tr:last-child td { border-bottom: none; }
 @media (min-width: 641px) {
   .toast { bottom: 24px; }
 }
+
+/* ══════════════════════════════════════════════
+   STATUS LIST (team modal + risk severity)
+══════════════════════════════════════════════ */
+.status-list,
+.severity-list {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.status-list-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: var(--radius-md);
+  border: 2px solid var(--border); background: var(--surface);
+  cursor: pointer; text-align: left; width: 100%;
+  font-family: 'Inter', sans-serif; transition: all .12s;
+}
+.status-list-item:hover { border-color: var(--accent); background: var(--accent-bg); }
+.status-list-item.selected { border-color: currentColor; }
+.sl-icon { font-size: 20px; flex-shrink: 0; }
+.sl-icon.sl-active   { color: var(--success); }
+.sl-icon.sl-inactive { color: var(--error); }
+.sl-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.sl-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.sl-desc  { font-size: 11px; color: var(--text-muted); }
+.sl-check { font-size: 18px; color: var(--accent); flex-shrink: 0; }
+.sl-active.selected   { background: var(--success-bg); border-color: var(--success); }
+.sl-inactive.selected { background: var(--error-bg);   border-color: var(--error);   }
+
+/* Severity selections */
+.sl-sev-high.selected   { background: var(--error-bg);   border-color: var(--error);   }
+.sl-sev-medium.selected { background: var(--warning-bg); border-color: var(--warning); }
+.sl-sev-low.selected    { background: var(--success-bg); border-color: var(--success); }
+
+/* ══════════════════════════════════════════════
+   RISKS TAB
+══════════════════════════════════════════════ */
+.risks-list { display: flex; flex-direction: column; gap: 8px; }
+.risk-card {
+  display: flex; align-items: flex-start;
+  gap: 12px; padding: 14px 16px;
+  background: var(--surface-bright);
+  border: 1px solid var(--border);
+  border-left: 4px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer; transition: box-shadow .12s;
+}
+.risk-card:hover { box-shadow: var(--shadow-md); }
+.risk-card.risk-high   { border-left-color: var(--error); }
+.risk-card.risk-medium { border-left-color: var(--warning); }
+.risk-card.risk-low    { border-left-color: var(--success); }
+.risk-card-left { flex: 1; display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+.risk-sev-badge {
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+  padding: 3px 8px; border-radius: 10px; flex-shrink: 0;
+}
+.sev-high   { background: var(--error-bg);   color: var(--error); }
+.sev-medium { background: var(--warning-bg); color: #92400e; }
+.sev-low    { background: var(--success-bg); color: #047857; }
+.risk-card-body { flex: 1; min-width: 0; }
+.risk-card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.risk-card-desc  { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.4; }
+.risk-card-meta  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.risk-meta-tag {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 2px 7px; border-radius: 10px;
+}
+.risk-meta-tag .mat-icon { font-size: 13px; }
+.risk-meta-date { font-size: 10px; color: var(--text-muted); }

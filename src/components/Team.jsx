@@ -260,24 +260,24 @@ export default function Team() {
               {editing && (
                 <div className="form-group">
                   <label className="form-label">Estado</label>
-                  <div className="status-toggle-row">
-                    <button type="button"
-                      className={`status-toggle-btn ${form.active ? 'active' : ''}`}
-                      onClick={() => setForm(f => ({ ...f, active: true }))}>
-                      <span className="mat-icon">check_circle</span> Activo
-                    </button>
-                    <button type="button"
-                      className={`status-toggle-btn ${!form.active ? 'inactive' : ''}`}
-                      onClick={() => setForm(f => ({ ...f, active: false }))}>
-                      <span className="mat-icon">block</span> Inactivo
-                    </button>
+                  <div className="status-list">
+                    {[
+                      { value: true,  icon: 'check_circle', label: 'Activo',   desc: 'Aparece en equipo y asignaciones', cls: 'sl-active'   },
+                      { value: false, icon: 'block',        label: 'Inactivo', desc: 'Oculto del equipo activo',         cls: 'sl-inactive' },
+                    ].map(opt => (
+                      <button key={String(opt.value)} type="button"
+                        className={`status-list-item ${form.active === opt.value ? opt.cls + ' selected' : ''}`}
+                        onClick={() => setForm(f => ({ ...f, active: opt.value }))}>
+                        <span className={`mat-icon sl-icon ${opt.cls}`}>{opt.icon}</span>
+                        <div className="sl-text">
+                          <span className="sl-label">{opt.label}</span>
+                          <span className="sl-desc">{opt.desc}</span>
+                        </div>
+                        {form.active === opt.value && <span className="mat-icon sl-check">radio_button_checked</span>}
+                        {form.active !== opt.value && <span className="mat-icon sl-check" style={{opacity:.3}}>radio_button_unchecked</span>}
+                      </button>
+                    ))}
                   </div>
-                  {!form.active && (
-                    <p className="form-hint">
-                      <span className="mat-icon" style={{fontSize:13}}>info</span>
-                      No aparecerá en asignaciones ni en el equipo activo.
-                    </p>
-                  )}
                 </div>
               )}
 
