@@ -168,3 +168,47 @@ export async function getDashboardKPIs() {
     teamSize:      m.length,
   }
 }
+
+// ── Tasks CRUD ────────────────────────────────────
+export async function createTask(task) {
+  const { data, error } = await supabase.rpc('al_upsert_task', {
+    p_id:          task.id || null,
+    p_project_id:  task.project_id,
+    p_assigned_to: task.assigned_to || null,
+    p_title:       task.title,
+    p_group_name:  task.group_name || null,
+    p_status:      task.status || 'planning',
+    p_due_date:    task.due_date || null,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function deleteTask(id) {
+  const { error } = await supabase.rpc('al_delete_task', { p_id: id })
+  if (error) throw error
+}
+
+// ── Project members assignment ────────────────────
+export async function getProjectMembers(projectId) {
+  const { data, error } = await supabase
+    .from('al_project_members')
+    .select('*')
+    .eq('project_id', projectId)
+  if (error) throw error
+  return data || []
+}
+
+export async function toggleProjectMember(projectId, memberId, add) {
+  if (add) {
+    const { error } = await supabase.rpc('al_add_project_member', {
+      p_project_id: projectId, p_member_id: memberId
+    })
+    if (error) throw error
+  } else {
+    const { error } = await supabase.rpc('al_remove_project_member', {
+      p_project_id: projectId, p_member_id: memberId
+    })
+    if (error) throw error
+  }
+}

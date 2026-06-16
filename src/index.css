@@ -1131,3 +1131,93 @@ tbody tr:last-child td { border-bottom: none; }
     max-height: 70dvh;
   }
 }
+
+/* ══════════════════════════════════════════════
+   PROJECT DETAIL — OVERVIEW, TASKS, TEAM
+══════════════════════════════════════════════ */
+
+/* Overview layout */
+.overview-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+}
+.overview-main { display: flex; flex-direction: column; gap: 16px; }
+.overview-side { display: flex; flex-direction: column; gap: 8px; }
+
+.overview-progress-block {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.overview-progress-row { display: flex; justify-content: space-between; align-items: center; }
+.overview-progress-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.overview-progress-val   { font-size: 13px; font-weight: 700; }
+
+.overview-tasks-mini { display: flex; flex-direction: column; gap: 6px; }
+.mini-task {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-secondary);
+  padding: 6px 8px; border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.mini-task-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.mini-task-dot.completed { background: var(--success); }
+.mini-task-dot.on-track  { background: var(--accent); }
+.mini-task-dot.at-risk   { background: var(--warning); }
+.mini-task-dot.delayed   { background: var(--error); }
+.mini-task-dot.planning  { background: var(--text-muted); }
+.mini-task-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.link-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent); font-size: 12px; font-weight: 500;
+  font-family: 'Inter', sans-serif; padding: 0;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.link-btn:hover { opacity: .75; }
+
+/* Team assign grid */
+.team-assign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+.team-assign-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 8px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border);
+  background: var(--surface);
+  cursor: pointer; transition: all .15s;
+  font-family: 'Inter', sans-serif;
+}
+.team-assign-card:hover { border-color: var(--accent); background: var(--accent-bg); }
+.team-assign-card.assigned { border-color: var(--success); background: var(--success-bg); }
+.team-assign-card:disabled { opacity: .6; cursor: not-allowed; }
+
+.assigned-check {
+  position: absolute; bottom: -2px; right: -2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--success); color: white;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid white;
+}
+.assigned-check .mat-icon { font-size: 11px; }
+
+.team-assign-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.team-assign-role { font-size: 10px; color: var(--text-muted); text-align: center; }
+.team-assign-badge {
+  font-size: 9px; font-weight: 700; padding: 2px 7px;
+  border-radius: 10px; text-transform: uppercase; letter-spacing: .3px;
+}
+.badge-assigned   { background: var(--success-bg); color: #047857; }
+.badge-unassigned { background: var(--surface-bright); color: var(--text-muted); border: 1px solid var(--border); }
+
+@media (max-width: 640px) {
+  .overview-layout { grid-template-columns: 1fr; }
+  .team-assign-grid { grid-template-columns: repeat(3, 1fr); }
+}
