@@ -90,9 +90,7 @@ export default function App() {
               <Notifications onClose={() => setNotifOpen(false)} />
             )}
           </div>
-          <button className="icon-btn" aria-label="Ayuda">
-            <span className="mat-icon">help_outline</span>
-          </button>
+
           <div style={{ position: 'relative' }}>
             <div className="avatar-circle topnav-avatar"
               style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}

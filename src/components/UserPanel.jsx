@@ -86,7 +86,11 @@ export function applyTheme(theme) {
     root.style.setProperty('--warning-bg',      '#451a03')
     root.style.setProperty('--error-bg',        '#450a0a')
     root.style.setProperty('--purple-bg',       '#2e1065')
+    root.style.setProperty('--secondary',       '#94a3b8')
+    // Override hardcoded whites/shadows for dark mode
+    root.setAttribute('data-theme', 'dark')
   } else {
+    root.removeAttribute('data-theme')
     root.style.setProperty('--surface-bright',  '#ffffff')
     root.style.setProperty('--border',          '#e2e8f0')
     root.style.setProperty('--text-primary',    '#1e293b')
