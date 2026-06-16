@@ -75,7 +75,7 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
     body{font-family:'${style.fontFamily}','Segoe UI',Arial,sans-serif;font-size:11px;color:#1e293b;line-height:1.5;background:#fff}
     h1{font-size:24px;font-weight:800;letter-spacing:-.5px}
     h2{font-size:15px;font-weight:700;color:#1e293b;margin:22px 0 10px;padding-bottom:5px;border-bottom:2px solid ${style.accentColor}20}
-    h3{font-size:12px;font-weight:700;color:${style.secondaryColor};margin:14px 0 7px;text-transform:uppercase;letter-spacing:.6px}
+    h3{font-size:11px;font-weight:700;color:${style.secondaryColor};margin:10px 0 6px;text-transform:uppercase;letter-spacing:.6px;border-top:1px solid #f1f5f9;padding-top:10px}
     .page{padding:28px 32px;max-width:900px;margin:0 auto}
     .sub{color:#64748b;font-size:10px}
     .center{text-align:center}
@@ -98,10 +98,10 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
     /* Summary table */
     table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}
     thead th{background:${style.primaryColor};color:white;padding:8px 9px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-    tbody td{padding:8px 9px;border-bottom:1px solid #e2e8f0;vertical-align:middle}
+    tbody td{padding:6px 9px;border-bottom:1px solid #e2e8f0;vertical-align:middle}
     tbody tr:nth-child(even) td{background:#f8fafc}
     /* KPIs */
-    .kpi-row{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap}
+    .kpi-row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
     .kpi-box{flex:1;min-width:70px;border:1px solid #e2e8f0;border-radius:8px;padding:12px 10px;text-align:center;background:#f8fafc;border-top:3px solid ${style.accentColor}}
     .kpi-val{font-size:22px;font-weight:800;letter-spacing:-1px;color:#1e293b}
     .kpi-lbl{font-size:9px;color:#64748b;margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
@@ -114,10 +114,10 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
     .pb-wrap{flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
     .pb-wrap.big{height:9px;border-radius:5px}
     .pb-fill{height:100%;border-radius:3px}
-    .progress-section{margin:12px 0;background:#f8fafc;padding:12px 14px;border-radius:8px}
+    .progress-section{margin:8px 0;background:#f8fafc;padding:10px 14px;border-radius:8px}
     .progress-row{display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px}
     /* Project detail */
-    .proj-header{padding:16px 18px;border-radius:10px;margin-bottom:14px;border-left:5px solid ${style.accentColor};background:#f8fafc}
+    .proj-header{padding:12px 16px;border-radius:10px;margin-bottom:10px;border-left:5px solid ${style.accentColor};background:#f8fafc}
     .proj-header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
     .proj-meta-row{display:flex;gap:18px;font-size:11px;color:#64748b;flex-wrap:wrap;margin-top:6px}
     .description{margin-top:10px;font-size:11px;color:#475569;line-height:1.7;padding:10px 12px;background:white;border-radius:6px;border:1px solid #e2e8f0}
@@ -136,8 +136,22 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
     .milestone-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid #f1f5f9}
     .milestone-date{font-weight:700;color:${style.accentColor};min-width:80px;font-size:11px}
     /* Section */
-    .section{margin-bottom:20px}
-    .page-break{page-break-before:always;padding-top:16px}
+    .section{margin-bottom:16px}
+    .page-break{page-break-before:always;padding-top:0}
+    /* Project separator banner */
+    .proj-banner{
+      background:${style.primaryColor};
+      color:white;
+      padding:14px 20px;
+      margin:-1px 0 0 0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      page-break-before:always;
+    }
+    .proj-banner-num{font-size:10px;opacity:.5;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+    .proj-banner-title{font-size:18px;font-weight:800;letter-spacing:-.3px;flex:1;margin:0 16px}
+    .proj-banner-status{font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;white-space:nowrap}
     /* Footer */
     .report-footer{margin-top:32px;padding-top:12px;border-top:2px solid ${style.accentColor}20;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}
     @media print{
@@ -289,7 +303,7 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
   ` : ''
 
   // ── Project detail pages ──
-  const details = reportType === 'full' ? projects.map(p => {
+  const details = reportType === 'full' ? projects.map((p, idx) => {
     const dd = detailData[p.id] || {}
     const s  = sc(p.status)
     const tasks   = dd.tasks   || []
@@ -299,22 +313,23 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
 
     return `
       <div class="page-break">
-        <div class="proj-header">
-          <div class="proj-header-top">
-            <div>
-              <h2 style="margin:0;border:none;padding:0">${p.name}</h2>
-              ${p.client?`<div class="sub" style="margin-top:3px">${p.client}</div>`:''}
-            </div>
-            <span class="badge lg" style="background:${s.color}18;color:${s.color};border:1px solid ${s.color}40">
-              <span class="semaforo" style="background:${s.color}"></span>${s.label}
-            </span>
-          </div>
-          <div class="proj-meta-row">
+        <!-- Project banner — acts as visual separator and title -->
+        <div class="proj-banner">
+          <div class="proj-banner-num">Proyecto ${String(idx+1).padStart(2,'0')} de ${projects.length}</div>
+          <div class="proj-banner-title">${p.name}</div>
+          <span class="proj-banner-status" style="background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.3)">
+            <span class="semaforo" style="background:${s.color};width:8px;height:8px"></span> ${s.label}
+          </span>
+        </div>
+        <!-- Project meta -->
+        <div class="proj-header" style="border-radius:0 0 8px 8px;margin-bottom:10px">
+          <div class="proj-meta-row" style="margin-bottom:0">
+            ${p.client?`<span><strong>Cliente:</strong> ${p.client}</span>`:''}
             <span><strong>Líder:</strong> ${p.leader_name||'—'}</span>
             <span><strong>Entrega:</strong> ${fmt(p.due_date)}</span>
-            <span><strong>Progreso:</strong> ${p.progress}% (est. ${p.estimated}%)</span>
+            <span><strong>Progreso:</strong> ${p.progress}% <span style="color:#94a3b8">(est. ${p.estimated}%)</span></span>
           </div>
-          ${p.description?`<div class="description">${p.description}</div>`:''}
+          ${p.description?`<div class="description" style="margin-top:8px">${p.description}</div>`:''}
         </div>
 
         <!-- Progress -->
