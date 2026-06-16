@@ -5,7 +5,8 @@ import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
 import Team from './components/Team'
 import Reports from './components/Reports'
-import { getProjects, getActivity } from './lib/supabase'
+import { getProjects, getActivity, getActiveProjects, getUserPrefs } from './lib/supabase'
+import UserPanel, { applyTheme, THEMES } from './components/UserPanel'
 import Notifications from './components/Notifications'
 import './index.css'
 
@@ -23,10 +24,21 @@ export default function App() {
   const [sideOpen, setSideOpen]           = useState(window.innerWidth > 640)
   const [projectCount, setProjectCount]   = useState(null)
   const [notifOpen, setNotifOpen]         = useState(false)
+  const [userPanelOpen, setUserPanelOpen] = useState(false)
+  const [activeProjects, setActiveProjects] = useState([])
+  const [userPrefs, setUserPrefs]         = useState(getUserPrefs)
   const [unreadCount, setUnreadCount]     = useState(0)
 
   useEffect(() => {
     getProjects().then(p => setProjectCount(p.length)).catch(() => setProjectCount(0))
+    getActiveProjects().then(setActiveProjects).catch(() => {})
+    // Apply saved theme
+    const prefs = getUserPrefs()
+    if (prefs.themeId) {
+      const t = THEMES.find(t => t.id === prefs.themeId)
+      if (t) applyTheme(t)
+    }
+    if (prefs.compact) document.documentElement.classList.add('compact')
     // Count unread notifications
     getActivity(20).then(items => {
       const read = JSON.parse(localStorage.getItem('alp_read') || '[]')
@@ -81,7 +93,14 @@ export default function App() {
           <button className="icon-btn" aria-label="Ayuda">
             <span className="mat-icon">help_outline</span>
           </button>
-          <div className="avatar-circle topnav-avatar" style={{ background: '#1e293b', fontSize: 12 }}>FA</div>
+          <div style={{ position: 'relative' }}>
+            <div className="avatar-circle topnav-avatar"
+              style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
+              onClick={() => { setUserPanelOpen(o => !o); setNotifOpen(false) }}>
+              {(userPrefs.name || 'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
+            </div>
+            {userPanelOpen && <UserPanel onClose={() => setUserPanelOpen(false)} />}
+          </div>
         </div>
       </header>
 
@@ -113,16 +132,15 @@ export default function App() {
             <div className="sidenav-projects-section">
               <div className="sidenav-divider" />
               <div className="sidenav-section-label">Proyectos activos</div>
-              {[
-                { icon: 'rocket_launch', label: 'Infra Modernization', color: '#3b82f6' },
-                { icon: 'security',      label: 'Security Upgrade',    color: '#8b5cf6' },
-                { icon: 'cloud_upload',  label: 'Cloud Migration',     color: '#10b981' },
-              ].map(p => (
-                <button key={p.label} className="nav-item nav-item-project" onClick={() => navigate('projects')}>
-                  <span className="project-dot" style={{ background: p.color }} />
-                  <span className="nav-item-project-label">{p.label}</span>
-                </button>
-              ))}
+              {activeProjects.length === 0
+                ? <div style={{fontSize:11,color:'var(--text-muted)',padding:'4px 10px'}}>Sin proyectos activos</div>
+                : activeProjects.map(p => (
+                  <button key={p.id} className="nav-item nav-item-project" onClick={() => navigate('projects')}>
+                    <span className="project-dot" style={{ background: p.leader_color || 'var(--accent)' }} />
+                    <span className="nav-item-project-label">{p.name}</span>
+                  </button>
+                ))
+              }
             </div>
 
             {/* Bottom */}
@@ -134,12 +152,18 @@ export default function App() {
               </button>
 
               {/* User info at bottom */}
-              <div className="sidenav-user">
-                <div className="avatar-circle" style={{ width: 32, height: 32, background: '#1e293b', fontSize: 12, flexShrink: 0 }}>FA</div>
-                <div className="sidenav-user-info">
-                  <div className="sidenav-user-name">Francisco A.</div>
-                  <div className="sidenav-user-role">Area Leader</div>
+              <div className="sidenav-user" onClick={() => { setUserPanelOpen(true); setSideOpen(false) }}
+                style={{ cursor:'pointer', borderRadius:'var(--radius)', transition:'background .12s' }}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div className="avatar-circle" style={{ width:32, height:32, background: userPrefs.color||'#1e293b', fontSize:12, flexShrink:0 }}>
+                  {(userPrefs.name||'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
                 </div>
+                <div className="sidenav-user-info">
+                  <div className="sidenav-user-name">{userPrefs.name || 'Francisco A.'}</div>
+                  <div className="sidenav-user-role">{userPrefs.role || 'Area Leader'}</div>
+                </div>
+                <span className="mat-icon" style={{fontSize:16,color:'var(--text-muted)',marginLeft:'auto'}}>settings</span>
               </div>
             </div>
           </div>

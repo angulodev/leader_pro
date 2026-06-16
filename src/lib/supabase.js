@@ -265,3 +265,24 @@ export async function deleteRisk(id) {
   const { error } = await supabase.rpc('al_delete_risk', { p_id: id })
   if (error) throw error
 }
+
+// ── Active projects for sidebar ───────────────────
+export async function getActiveProjects() {
+  const { data, error } = await supabase
+    .from('al_projects')
+    .select('id, name, status, leader_color')
+    .in('status', ['active', 'at-risk', 'planning'])
+    .order('updated_at', { ascending: false })
+    .limit(5)
+  if (error) throw error
+  return data || []
+}
+
+// ── User preferences (localStorage) ──────────────
+const PREFS_KEY = 'alp_user_prefs'
+export function getUserPrefs() {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') } catch { return {} }
+}
+export function saveUserPrefs(prefs) {
+  localStorage.setItem(PREFS_KEY, JSON.stringify({ ...getUserPrefs(), ...prefs }))
+}

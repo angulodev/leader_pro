@@ -196,6 +196,8 @@ PostgREST solo expone el schema `public` por defecto. Para que el cliente JavaSc
 | `al_workload` | Carga con datos de miembro y proyecto |
 | `al_project_members` | Miembros asignados a cada proyecto |
 
+> **Nota:** La sección "Proyectos activos" del sidebar muestra los proyectos con estado `active`, `at-risk` o `planning`, ordenados por última actualización. Se actualiza automáticamente al cargar la app.
+
 ### Funciones RPC
 
 Todas las operaciones de escritura se hacen via RPC con `SECURITY DEFINER`:
@@ -307,6 +309,33 @@ npm run build
 # Preview del build local
 npm run preview
 ```
+
+---
+
+## Personalización de usuario
+
+Cada usuario puede personalizar su experiencia desde el panel de perfil (ícono de avatar en el topnav):
+
+### Perfil
+- Nombre mostrado, cargo y email
+- Color de avatar
+
+### Temas (6 disponibles)
+| Tema | Descripción |
+|------|-------------|
+| Océano | Azul marino clásico (por defecto) |
+| Pizarra | Gris profesional con acento índigo |
+| Esmeralda | Verde corporativo |
+| Rosa | Moderno y vibrante |
+| Oscuro | Modo noche completo |
+| Violeta | Creativo con acento púrpura |
+
+El tema se aplica en tiempo real y se persiste en `localStorage`.
+
+### Ajustes
+- **Compactar tablas**: reduce padding para ver más contenido
+- **Sidebar por defecto**: controla si el panel lateral arranca abierto
+- **Limpiar preferencias**: restaura todo al estado original
 
 ---
 
