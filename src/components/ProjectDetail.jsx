@@ -8,11 +8,11 @@ import { StatusTag, Avatar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
 
 const STATUSES = [
-  { value: 'planning',  label: 'Planificación' },
-  { value: 'on-track',  label: 'On Track'      },
-  { value: 'at-risk',   label: 'At Risk'        },
-  { value: 'delayed',   label: 'Delayed'        },
-  { value: 'completed', label: 'Completado'     },
+  { value: 'todo',        label: '📋 Pendiente'   },
+  { value: 'in-progress', label: '🚀 En curso'    },
+  { value: 'review',      label: '👁 En revisión' },
+  { value: 'blocked',     label: '🚫 Bloqueado'   },
+  { value: 'completed',   label: '✅ Completado'  },
 ]
 
 function timeAgo(iso) {
@@ -23,7 +23,7 @@ function timeAgo(iso) {
   return `Hace ${Math.floor(diff / 86400)}d`
 }
 
-const EMPTY_TASK = { title: '', group_name: '', status: 'planning', assigned_to: '', due_date: '' }
+const EMPTY_TASK = { title: '', group_name: '', status: 'todo', assigned_to: '', due_date: '' }
 
 export default function ProjectDetail({ project: initialProject, onBack, onProjectUpdated }) {
   const [project, setProject]       = useState(initialProject)

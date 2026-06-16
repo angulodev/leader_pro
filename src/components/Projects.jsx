@@ -25,8 +25,8 @@ export default function Projects({ onSelectProject }) {
 
   const avgProgress  = projects.length
     ? (projects.reduce((a, p) => a + p.progress, 0) / projects.length).toFixed(0) : 0
-  const atRiskCount  = projects.filter(p => ['at-risk','delayed'].includes(p.status)).length
-  const onTrackCount = projects.filter(p => p.status === 'on-track').length
+  const atRiskCount  = projects.filter(p => ['at-risk','on-hold'].includes(p.status)).length
+  const onTrackCount = projects.filter(p => p.status === 'active').length
 
   async function handleDelete(p, e) {
     e.stopPropagation()
@@ -81,10 +81,11 @@ export default function Projects({ onSelectProject }) {
         </div>
         <select className="filter-select" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
           <option value="">Todos los estados</option>
-          <option value="on-track">On Track</option>
-          <option value="at-risk">At Risk</option>
-          <option value="delayed">Delayed</option>
-          <option value="planning">Planning</option>
+          <option value="backlog">Backlog</option>
+          <option value="planning">Planificación</option>
+          <option value="active">En desarrollo</option>
+          <option value="at-risk">En riesgo</option>
+          <option value="on-hold">En pausa</option>
           <option value="completed">Completado</option>
         </select>
       </div>

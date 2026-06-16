@@ -3,11 +3,12 @@ import { getTeamMembers, upsertProject } from '../lib/supabase'
 import { Avatar } from './UI'
 
 const STATUSES = [
-  { value: 'planning',  label: 'Planificación' },
-  { value: 'on-track',  label: 'On Track'      },
-  { value: 'at-risk',   label: 'At Risk'        },
-  { value: 'delayed',   label: 'Delayed'        },
-  { value: 'completed', label: 'Completado'     },
+  { value: 'backlog',   label: '📋 Backlog',           desc: 'Pendiente de priorizar'     },
+  { value: 'planning',  label: '🗂 Planificación',      desc: 'Definiendo alcance y equipo' },
+  { value: 'active',    label: '🚀 En desarrollo',      desc: 'Trabajo activo en curso'    },
+  { value: 'at-risk',   label: '⚠️ En riesgo',          desc: 'Requiere atención inmediata' },
+  { value: 'on-hold',   label: '⏸ En pausa',            desc: 'Bloqueado o suspendido'     },
+  { value: 'completed', label: '✅ Completado',          desc: 'Entregado y cerrado'        },
 ]
 
 const EMPTY = {

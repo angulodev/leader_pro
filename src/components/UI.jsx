@@ -2,11 +2,17 @@
 
 export function StatusTag({ status }) {
   const map = {
-    'on-track':  { label: 'On Track',  cls: 'tag-success' },
-    'at-risk':   { label: 'At Risk',   cls: 'tag-warning' },
-    'delayed':   { label: 'Delayed',   cls: 'tag-error'   },
-    'planning':  { label: 'Planning',  cls: 'tag-info'    },
-    'completed': { label: 'Completado',cls: 'tag-muted'   },
+    'backlog':   { label: 'Backlog',        cls: 'tag-muted'   },
+    'planning':  { label: 'Planificación',  cls: 'tag-info'    },
+    'active':    { label: 'En desarrollo',  cls: 'tag-success' },
+    'at-risk':   { label: 'En riesgo',      cls: 'tag-warning' },
+    'on-hold':   { label: 'En pausa',       cls: 'tag-hold'    },
+    'completed': { label: 'Completado',     cls: 'tag-done'    },
+    // task statuses
+    'todo':        { label: 'Pendiente',    cls: 'tag-muted'   },
+    'in-progress': { label: 'En curso',     cls: 'tag-info'    },
+    'review':      { label: 'En revisión',  cls: 'tag-warning' },
+    'blocked':     { label: 'Bloqueado',    cls: 'tag-error'   },
   }
   const { label, cls } = map[status] || { label: status, cls: 'tag-muted' }
   return <span className={`tag ${cls}`}>{label}</span>

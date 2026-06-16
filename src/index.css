@@ -1221,3 +1221,52 @@ tbody tr:last-child td { border-bottom: none; }
   .overview-layout { grid-template-columns: 1fr; }
   .team-assign-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ══════════════════════════════════════════════
+   STATUS PICKER + NEW STATUS TAGS
+══════════════════════════════════════════════ */
+
+/* Status picker grid */
+.status-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.status-option {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 10px 12px; border-radius: var(--radius-md);
+  border: 2px solid var(--border); background: var(--surface);
+  cursor: pointer; text-align: left; gap: 3px;
+  transition: all .15s; font-family: 'Inter', sans-serif;
+}
+.status-option:hover { border-color: var(--accent); background: var(--accent-bg); }
+.status-option-label { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.status-option-desc  { font-size: 10px; color: var(--text-muted); line-height: 1.3; }
+
+/* Per-status colors when selected */
+.status-option-backlog.selected   { border-color: var(--text-muted); background: var(--surface); }
+.status-option-planning.selected  { border-color: var(--accent);  background: var(--accent-bg); }
+.status-option-active.selected    { border-color: var(--success); background: var(--success-bg); }
+.status-option-at-risk.selected   { border-color: var(--warning); background: var(--warning-bg); }
+.status-option-on-hold.selected   { border-color: #8b5cf6;        background: var(--purple-bg); }
+.status-option-completed.selected { border-color: var(--success); background: var(--success-bg); }
+
+/* New status tags */
+.tag-hold { background: var(--purple-bg); color: #5b21b6; }
+.tag-hold::before { background: var(--purple); }
+.tag-done { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.tag-done::before { background: #16a34a; }
+
+/* Mini task dots for new statuses */
+.mini-task-dot.active      { background: var(--success); }
+.mini-task-dot.at-risk     { background: var(--warning); }
+.mini-task-dot.on-hold     { background: var(--purple); }
+.mini-task-dot.backlog     { background: var(--text-muted); }
+.mini-task-dot.in-progress { background: var(--accent); }
+.mini-task-dot.review      { background: var(--warning); }
+.mini-task-dot.blocked     { background: var(--error); }
+.mini-task-dot.todo        { background: var(--border); }
+
+@media (max-width: 480px) {
+  .status-picker { grid-template-columns: repeat(2, 1fr); }
+}
