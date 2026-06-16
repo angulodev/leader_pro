@@ -2204,3 +2204,19 @@ tbody tr:last-child td { border-bottom: none; }
 /* Dark mode */
 [data-theme="dark"] .sidenav-pin-btn:hover { background: #334155; }
 [data-theme="dark"] .sidenav-pin-row { border-color: #334155; }
+
+/* ── Sidebar pin button in topnav ── */
+.sidebar-pin-topnav {
+  display: none; /* hidden on mobile */
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sidebar-pin-topnav.pinned {
+  color: var(--accent);
+}
+@media (min-width: 641px) {
+  .sidebar-pin-topnav { display: flex; }
+  /* Remove old sidenav-pin-row since it's now in topnav */
+  .sidenav-pin-row { display: none !important; }
+}
+[data-theme="dark"] .sidebar-pin-topnav:hover { background: #334155; }

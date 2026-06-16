@@ -88,6 +88,24 @@ function AppInner() {
           <div className="brand-icon"><span className="mat-icon">hub</span></div>
           <span className="brand-name">Area Leader Pro</span>
         </div>
+        {/* Pin sidebar button — desktop only, next to brand */}
+        <button
+          className={`icon-btn sidebar-pin-topnav ${sidePinned ? 'pinned' : ''}`}
+          onClick={() => {
+            const next = !sidePinned
+            setSidePinned(next)
+            if (!next) setSideOpen(false)
+            else setSideOpen(true)
+            try {
+              const k = 'alp_user_prefs'
+              const cur = JSON.parse(localStorage.getItem(k) || '{}')
+              localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: next }))
+            } catch(e) {}
+          }}
+          title={sidePinned ? 'Desanclar sidebar' : 'Anclar sidebar'}
+        >
+          <span className="mat-icon" style={{fontSize:18, transform: sidePinned ? 'rotate(-45deg)' : 'none', transition:'transform .2s'}}>push_pin</span>
+        </button>
         <div className="topnav-search">
           <span className="mat-icon search-icon-nav">search</span>
           <input type="text" placeholder="Buscar proyectos, tareas…" />
@@ -118,26 +136,6 @@ function AppInner() {
         {/* ── SIDEBAR ── */}
         <aside className={`sidenav ${sideOpen ? 'open' : ''} ${sidePinned ? 'pinned' : ''}`}>
           <div className="sidenav-inner">
-            {/* Pin button — desktop only */}
-            <div className="sidenav-pin-row">
-              <button
-                className={`sidenav-pin-btn ${sidePinned ? 'pinned' : ''}`}
-                onClick={() => {
-                  const next = !sidePinned
-                  setSidePinned(next)
-                  if (!next) setSideOpen(false)
-                  try {
-                    const k = 'alp_user_prefs'
-                    const cur = JSON.parse(localStorage.getItem(k) || '{}')
-                    localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: next }))
-                  } catch(e) {}
-                }}
-                title={sidePinned ? 'Desanclar sidebar' : 'Anclar sidebar'}
-              >
-                <span className="mat-icon">{sidePinned ? 'push_pin' : 'push_pin'}</span>
-                <span className="sidenav-pin-label">{sidePinned ? 'Anclado' : 'Anclar'}</span>
-              </button>
-            </div>
             <nav className="sidenav-main">
               <div className="sidenav-section-label">Principal</div>
               {NAV.map(n => (
@@ -185,7 +183,11 @@ function AppInner() {
                   <div className="sidenav-user-name">{userPrefs.name || 'Francisco A.'}</div>
                   <div className="sidenav-user-role">{userPrefs.role || 'Area Leader'}</div>
                 </div>
-                <span className="mat-icon" style={{fontSize:16,color:'var(--text-muted)',marginLeft:'auto'}}>settings</span>
+                <button className="icon-btn" style={{width:28,height:28,flexShrink:0,marginLeft:'auto'}}
+                  onClick={e=>{e.stopPropagation();navigate('/settings');if(!sidePinned)setSideOpen(false)}}
+                  title="Configuración">
+                  <span className="mat-icon" style={{fontSize:17}}>settings</span>
+                </button>
               </div>
             </div>
           </div>
