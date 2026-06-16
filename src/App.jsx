@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Dashboard from './components/Dashboard'
 import Projects from './components/Projects'
 import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
 import Team from './components/Team'
+import { getProjects } from './lib/supabase'
 import './index.css'
 
 const NAV = [
@@ -18,6 +19,11 @@ export default function App() {
   const [screen, setScreen]               = useState('dashboard')
   const [selectedProject, setSelectedProject] = useState(null)
   const [sideOpen, setSideOpen]           = useState(window.innerWidth > 640)
+  const [projectCount, setProjectCount]   = useState(null)
+
+  useEffect(() => {
+    getProjects().then(p => setProjectCount(p.length)).catch(() => setProjectCount(0))
+  }, [])
 
   function navigate(id) {
     setScreen(id)
@@ -83,7 +89,7 @@ export default function App() {
                 >
                   <span className="mat-icon nav-icon">{n.icon}</span>
                   <span>{n.label}</span>
-                  {n.id === 'projects' && <span className="nav-badge">7</span>}
+                  {n.id === 'projects' && projectCount > 0 && <span className="nav-badge">{projectCount}</span>}
                 </button>
               ))}
             </nav>
