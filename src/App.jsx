@@ -167,11 +167,7 @@ function AppInner() {
 
             <div className="sidenav-bottom">
               <div className="sidenav-divider" />
-              <button className="nav-item" onClick={() => { navigate('/settings'); setSideOpen(false) }}>
-                <span className="mat-icon nav-icon">settings</span>
-                <span>Configuración</span>
-              </button>
-              <div className="sidenav-user"
+              <div className="sidenav-user\"
                 onClick={() => { setUserPanelOpen(true); if (!sidePinned) setSideOpen(false) }}
                 style={{cursor:'pointer',borderRadius:'var(--radius)',transition:'background .12s'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
