@@ -4,7 +4,8 @@ import Projects from './components/Projects'
 import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
 import Team from './components/Team'
-import { getProjects } from './lib/supabase'
+import { getProjects, getActivity } from './lib/supabase'
+import Notifications from './components/Notifications'
 import './index.css'
 
 const NAV = [
@@ -20,9 +21,16 @@ export default function App() {
   const [selectedProject, setSelectedProject] = useState(null)
   const [sideOpen, setSideOpen]           = useState(window.innerWidth > 640)
   const [projectCount, setProjectCount]   = useState(null)
+  const [notifOpen, setNotifOpen]         = useState(false)
+  const [unreadCount, setUnreadCount]     = useState(0)
 
   useEffect(() => {
     getProjects().then(p => setProjectCount(p.length)).catch(() => setProjectCount(0))
+    // Count unread notifications
+    getActivity(20).then(items => {
+      const read = JSON.parse(localStorage.getItem('alp_read') || '[]')
+      setUnreadCount(items.filter(i => !read.includes(i.id)).length)
+    }).catch(() => {})
   }, [])
 
   function navigate(id) {
@@ -59,10 +67,16 @@ export default function App() {
           <input type="text" placeholder="Buscar proyectos, tareas…" />
         </div>
         <div className="topnav-actions">
-          <button className="icon-btn notif-btn" aria-label="Notificaciones">
-            <span className="mat-icon">notifications_none</span>
-            <span className="notif-dot" />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button className="icon-btn notif-btn" aria-label="Notificaciones"
+              onClick={() => setNotifOpen(o => !o)}>
+              <span className="mat-icon">{notifOpen ? 'notifications' : 'notifications_none'}</span>
+              {unreadCount > 0 && <span className="notif-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            </button>
+            {notifOpen && (
+              <Notifications onClose={() => setNotifOpen(false)} />
+            )}
+          </div>
           <button className="icon-btn" aria-label="Ayuda">
             <span className="mat-icon">help_outline</span>
           </button>
