@@ -17,6 +17,50 @@ const ACTIVITY_ICONS = {
   assignment: { icon: 'person_add',       cls: 'act-assign'  },
 }
 
+
+// ── SVG Bar Chart — works on all screen sizes ──────
+function BarChartSVG({ data }) {
+  const H = 130, PAD_T = 8, PAD_B = 28, PAD_L = 4, PAD_R = 4
+  const chartH = H - PAD_T - PAD_B
+  const colW = 100 / data.length
+  return (
+    <svg width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none"
+      style={{ display: 'block', overflow: 'visible' }}>
+      {/* Grid lines */}
+      {[25,50,75,100].map(v => (
+        <line key={v}
+          x1={PAD_L} y1={PAD_T + chartH * (1 - v/100)}
+          x2={100 - PAD_R} y2={PAD_T + chartH * (1 - v/100)}
+          stroke="var(--border)" strokeWidth="0.4" />
+      ))}
+      {data.map((d, i) => {
+        const x = PAD_L + i * colW + colW * 0.1
+        const bw = colW * 0.35
+        const actualH = (d.actual / 100) * chartH
+        const estH    = (d.est    / 100) * chartH
+        const actualY = PAD_T + chartH - actualH
+        const estY    = PAD_T + chartH - estH
+        return (
+          <g key={i}>
+            {/* Estimated bar */}
+            <rect x={x + bw + colW*0.04} y={estY} width={bw} height={estH}
+              fill="var(--border)" rx="0.5" opacity="0.7" />
+            {/* Actual bar */}
+            <rect x={x} y={actualY} width={bw} height={actualH}
+              fill="var(--accent)" rx="0.5" />
+            {/* Label */}
+            <text x={x + bw} y={H - 6} textAnchor="middle"
+              fontSize="3.5" fill="var(--text-muted)"
+              style={{ fontFamily: 'Inter, sans-serif' }}>
+              {d.label}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 export default function Dashboard({ onNavigate, onExport }) {
   const [kpi, setKpi] = useState(null)
   const [risks, setRisks] = useState([])
@@ -67,21 +111,11 @@ export default function Dashboard({ onNavigate, onExport }) {
             <span className="legend-dot blue" /> Real
             <span className="legend-dot gray" style={{ marginLeft: 12 }} /> Estimado
           </div>
-          <div className="bar-chart-wrap">
-            {loading ? <Skeleton h={120} /> :
-              <div className="bar-chart">
-                {chartData.map((d, i) => (
-                  <div key={i} className="bar-col">
-                    <div className="bar-pair">
-                      <div className="bar actual" style={{ height: `${d.actual}%` }} title={`Real: ${d.actual}%`} />
-                      <div className="bar est"    style={{ height: `${d.est}%`    }} title={`Est: ${d.est}%`} />
-                    </div>
-                    <div className="bar-label">{d.label}</div>
-                  </div>
-                ))}
-              </div>
-            }
-          </div>
+          {loading ? <Skeleton h={140} /> : chartData.length === 0 ? (
+            <div className="empty-chart"><span className="mat-icon">bar_chart</span><span>Sin proyectos aún</span></div>
+          ) : (
+            <BarChartSVG data={chartData} />
+          )}
         </div>
 
         <div className="card">
