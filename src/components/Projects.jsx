@@ -23,7 +23,6 @@ export default function Projects({ onSelectProject }) {
       && (!filterStatus || p.status === filterStatus)
   })
 
-  const totalBudget  = projects.reduce((a, p) => a + (p.budget || 0), 0)
   const avgProgress  = projects.length
     ? (projects.reduce((a, p) => a + p.progress, 0) / projects.length).toFixed(0) : 0
   const atRiskCount  = projects.filter(p => ['at-risk','delayed'].includes(p.status)).length
@@ -56,8 +55,8 @@ export default function Projects({ onSelectProject }) {
       {/* Summary strip */}
       <div className="summary-strip">
         <div className="summary-cell">
-          <div className="summary-val blue">${totalBudget >= 1e6 ? (totalBudget/1e6).toFixed(1)+'M' : (totalBudget/1e3).toFixed(0)+'K'}</div>
-          <div className="summary-lbl">Valor total</div>
+          <div className="summary-val blue">{projects.length}</div>
+          <div className="summary-lbl">Total proyectos</div>
         </div>
         <div className="summary-cell">
           <div className="summary-val green">{avgProgress}%</div>

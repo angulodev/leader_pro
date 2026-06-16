@@ -24,7 +24,6 @@ export default function ProjectModal({ project, onClose, onSaved }) {
     status:      project.status      || 'planning',
     progress:    project.progress    || 0,
     estimated:   project.estimated   || 0,
-    budget:      project.budget      ? String(project.budget) : '',
     leader_id:   project.leader_id   || '',
     due_date:    project.due_date    || '',
     description: project.description || '',
@@ -105,13 +104,7 @@ export default function ProjectModal({ project, onClose, onSaved }) {
           </div>
 
           <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Presupuesto (USD)</label>
-              <input className="form-input" type="number" min={0} value={form.budget}
-                onChange={e => set('budget', e.target.value)}
-                placeholder="ej. 1800000" />
-            </div>
-            <div className="form-group">
+              <div className="form-group">
               <label className="form-label">Fecha de entrega</label>
               <input className="form-input" type="date" value={form.due_date}
                 onChange={e => set('due_date', e.target.value)} />

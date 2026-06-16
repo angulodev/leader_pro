@@ -68,8 +68,7 @@ export default function ProjectDetail({ project, onBack }) {
           <h1 className="page-title">{project.name}</h1>
           <p className="page-sub">
             {project.leader && `Liderado por ${project.leader.name} · `}
-            {project.budget && `$${(project.budget / 1e6).toFixed(1)}M · `}
-            {project.due_date && `Entrega ${new Date(project.due_date).toLocaleDateString('es-CL')}`}
+    {project.due_date && `Entrega ${new Date(project.due_date).toLocaleDateString('es-CL')}`}
           </p>
         </div>
         <div className="header-actions">
@@ -93,10 +92,10 @@ export default function ProjectDetail({ project, onBack }) {
           <div className="kpi-sub">{tasks.filter(t => t.status === 'completed').length} completadas</div>
         </div>
         <div className="kpi-card amber">
-          <div className="kpi-icon-wrap"><span className="mat-icon">payments</span></div>
-          <div className="kpi-label">Presupuesto</div>
-          <div className="kpi-value">${project.budget ? (project.budget / 1e6).toFixed(1) + 'M' : '—'}</div>
-          <div className="kpi-sub">Total asignado</div>
+          <div className="kpi-icon-wrap"><span className="mat-icon">schedule</span></div>
+          <div className="kpi-label">Entrega</div>
+          <div className="kpi-value" style={{fontSize:16}}>{project.due_date ? new Date(project.due_date).toLocaleDateString('es-CL') : '—'}</div>
+          <div className="kpi-sub">{project.status === 'completed' ? 'Finalizado' : 'Fecha límite'}</div>
         </div>
         <div className="kpi-card purple">
           <div className="kpi-icon-wrap"><span className="mat-icon">groups</span></div>

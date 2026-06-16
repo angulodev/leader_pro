@@ -57,7 +57,6 @@ export async function upsertProject(project) {
     p_status:      project.status || 'planning',
     p_progress:    project.progress || 0,
     p_estimated:   project.estimated || 0,
-    p_budget:      project.budget ? parseFloat(project.budget) : null,
     p_leader_id:   project.leader_id || null,
     p_due_date:    project.due_date || null,
     p_description: project.description || null,
