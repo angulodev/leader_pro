@@ -2220,3 +2220,30 @@ tbody tr:last-child td { border-bottom: none; }
   .sidenav-pin-row { display: none !important; }
 }
 [data-theme="dark"] .sidebar-pin-topnav:hover { background: #334155; }
+
+/* ── Configuración item — fondo al final del sidebar ── */
+.nav-item-settings {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0 -8px;
+  padding: 12px 18px;
+  width: calc(100% + 16px);
+}
+.nav-item-settings:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-radius: 0;
+}
+.nav-item-settings.active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+[data-theme="dark"] .nav-item-settings {
+  border-top-color: #334155;
+}
+[data-theme="dark"] .nav-item-settings:hover {
+  background: #334155;
+}
