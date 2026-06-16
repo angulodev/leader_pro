@@ -2133,3 +2133,74 @@ tbody tr:last-child td { border-bottom: none; }
   /* Stack the two-col in reports */
   .screen-content .two-col .card { min-width: 0; }
 }
+
+/* ══════════════════════════════════════════════
+   SIDEBAR PIN
+══════════════════════════════════════════════ */
+
+/* Pin row — desktop only */
+.sidenav-pin-row {
+  display: none;
+  padding: 6px 4px 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+/* Pin button */
+.sidenav-pin-btn {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 5px 8px;
+  border: none; background: none; cursor: pointer;
+  border-radius: var(--radius);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-muted);
+  transition: all .12s;
+}
+.sidenav-pin-btn .mat-icon { font-size: 15px; transition: transform .2s; }
+.sidenav-pin-btn:hover { background: var(--surface); color: var(--text-secondary); }
+.sidenav-pin-btn.pinned { color: var(--accent); }
+.sidenav-pin-btn.pinned .mat-icon { transform: rotate(-45deg); color: var(--accent); }
+
+/* Pinned label */
+.sidenav-pin-label { font-size: 11px; }
+
+/* Desktop: show pin row, handle pinned state */
+@media (min-width: 641px) {
+  .sidenav-pin-row { display: flex; }
+
+  /* Pinned: sidebar is always visible, part of layout flow */
+  .sidenav.pinned {
+    position: relative;
+    transform: none !important;
+    width: var(--nav-width);
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  /* When pinned and open — normal flow */
+  .sidenav.pinned.open {
+    width: var(--nav-width);
+    overflow-y: auto;
+  }
+  /* When NOT pinned — overlay behavior (already handled by existing CSS) */
+  .sidenav:not(.pinned) {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0;
+    bottom: 0;
+    z-index: 300;
+    transform: translateX(-100%);
+  }
+  .sidenav:not(.pinned).open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-md);
+  }
+  /* Main content shifts when sidebar is pinned + open */
+  .layout:has(.sidenav.pinned.open) .main {
+    /* main already flex:1, sidebar takes its natural width */
+  }
+}
+
+/* Dark mode */
+[data-theme="dark"] .sidenav-pin-btn:hover { background: #334155; }
+[data-theme="dark"] .sidenav-pin-row { border-color: #334155; }

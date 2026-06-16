@@ -27,6 +27,10 @@ function AppInner() {
   const location  = useLocation()
 
   const [sideOpen,       setSideOpen]       = useState(window.innerWidth > 640)
+  const [sidePinned,     setSidePinned]     = useState(() => {
+    const prefs = getUserPrefs()
+    return prefs.sidebarPinned !== false && window.innerWidth > 640
+  })
   const [notifOpen,      setNotifOpen]      = useState(false)
   const [userPanelOpen,  setUserPanelOpen]  = useState(false)
   const [exportOpen,     setExportOpen]     = useState(false)
@@ -68,9 +72,9 @@ function AppInner() {
   }
 
   function goNav(nav) {
-    if (nav.path === null) { setExportOpen(true); setSideOpen(false); return }
+    if (nav.path === null) { setExportOpen(true); if (!sidePinned) setSideOpen(false); return }
     navigate(nav.path)
-    setSideOpen(false)
+    if (!sidePinned) setSideOpen(false)
   }
 
   return (
@@ -109,11 +113,31 @@ function AppInner() {
       </header>
 
       <div className="layout">
-        {sideOpen && <div className="sidebar-overlay" onClick={() => setSideOpen(false)} />}
+        {sideOpen && !sidePinned && <div className="sidebar-overlay" onClick={() => setSideOpen(false)} />}
 
         {/* ── SIDEBAR ── */}
-        <aside className={`sidenav ${sideOpen ? 'open' : ''}`}>
+        <aside className={`sidenav ${sideOpen ? 'open' : ''} ${sidePinned ? 'pinned' : ''}`}>
           <div className="sidenav-inner">
+            {/* Pin button — desktop only */}
+            <div className="sidenav-pin-row">
+              <button
+                className={`sidenav-pin-btn ${sidePinned ? 'pinned' : ''}`}
+                onClick={() => {
+                  const next = !sidePinned
+                  setSidePinned(next)
+                  if (!next) setSideOpen(false)
+                  try {
+                    const k = 'alp_user_prefs'
+                    const cur = JSON.parse(localStorage.getItem(k) || '{}')
+                    localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: next }))
+                  } catch(e) {}
+                }}
+                title={sidePinned ? 'Desanclar sidebar' : 'Anclar sidebar'}
+              >
+                <span className="mat-icon">{sidePinned ? 'push_pin' : 'push_pin'}</span>
+                <span className="sidenav-pin-label">{sidePinned ? 'Anclado' : 'Anclar'}</span>
+              </button>
+            </div>
             <nav className="sidenav-main">
               <div className="sidenav-section-label">Principal</div>
               {NAV.map(n => (
@@ -135,7 +159,7 @@ function AppInner() {
                 ? <div style={{fontSize:11,color:'var(--text-muted)',padding:'4px 10px'}}>Sin proyectos activos</div>
                 : activeProjects.map(p => (
                   <button key={p.id} className="nav-item nav-item-project"
-                    onClick={() => { navigate(`/projects/${p.id}`); setSideOpen(false) }}>
+                    onClick={() => { navigate(`/projects/${p.id}`); if (!sidePinned) setSideOpen(false) }}>
                     <span className="project-dot" style={{ background: STATUS_COLOR[p.status] || 'var(--accent)' }} />
                     <span className="nav-item-project-label">{p.name}</span>
                   </button>
@@ -150,7 +174,7 @@ function AppInner() {
                 <span>Configuración</span>
               </button>
               <div className="sidenav-user"
-                onClick={() => { setUserPanelOpen(true); setSideOpen(false) }}
+                onClick={() => { setUserPanelOpen(true); if (!sidePinned) setSideOpen(false) }}
                 style={{cursor:'pointer',borderRadius:'var(--radius)',transition:'background .12s'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
