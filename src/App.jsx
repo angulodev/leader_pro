@@ -9,7 +9,8 @@ import Reports from './components/Reports'
 import Notifications from './components/Notifications'
 import UserPanel, { applyTheme, THEMES } from './components/UserPanel'
 import ExportModal from './components/ExportModal'
-import { getProjects, getActivity, getUserPrefs } from './lib/supabase'
+import { getProjects, getActivity, getUserPrefs, supabase } from './lib/supabase'
+import Login from './components/Login'
 import './index.css'
 
 const NAV = [
@@ -26,6 +27,8 @@ function AppInner() {
   const navigate  = useNavigate()
   const location  = useLocation()
 
+  const [session,        setSession]        = useState(null)
+  const [authLoading,    setAuthLoading]    = useState(true)
   const [sideOpen,       setSideOpen]       = useState(window.innerWidth > 640)
   const [sidePinned,     setSidePinned]     = useState(() => {
     const prefs = getUserPrefs()
@@ -39,7 +42,21 @@ function AppInner() {
   const [unreadCount,    setUnreadCount]    = useState(0)
   const [userPrefs,      setUserPrefs]      = useState(getUserPrefs)
 
+  // Auth listener
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setAuthLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setAuthLoading(false)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (!session) return
     getProjects().then(p => {
       setProjectCount(p.length)
       setActiveProjects(
@@ -55,7 +72,7 @@ function AppInner() {
     const prefs = getUserPrefs()
     if (prefs.themeId) { const t = THEMES.find(t => t.id === prefs.themeId); if (t) applyTheme(t) }
     if (prefs.compact) document.documentElement.classList.add('compact')
-  }, [])
+  }, [session])
 
   // Current nav id from path
   const activeNav = location.pathname === '/'           ? 'dashboard'
@@ -76,6 +93,17 @@ function AppInner() {
     navigate(nav.path)
     if (!sidePinned) setSideOpen(false)
   }
+
+  if (authLoading) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100dvh',background:'var(--surface)'}}>
+      <div style={{textAlign:'center',color:'var(--text-muted)'}}>
+        <span className="mat-icon spin" style={{fontSize:36,display:'block',marginBottom:8}}>hub</span>
+        <div style={{fontSize:14,fontWeight:600}}>Area Leader Pro</div>
+      </div>
+    </div>
+  )
+
+  if (!session) return <Login />
 
   return (
     <div className="app">
@@ -119,6 +147,10 @@ function AppInner() {
             </button>
             {notifOpen && <Notifications onClose={() => setNotifOpen(false)} />}
           </div>
+          <button className="icon-btn" title="Cerrar sesión"
+            onClick={async () => { await supabase.auth.signOut(); setSession(null) }}>
+            <span className="mat-icon">logout</span>
+          </button>
           <div style={{ position: 'relative' }}>
             <div className="avatar-circle topnav-avatar"
               style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
