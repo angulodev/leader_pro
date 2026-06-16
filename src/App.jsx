@@ -178,7 +178,7 @@ export default function App() {
 
         {/* ── MAIN ── */}
         <main className="main">
-          {screen === 'dashboard'      && <Dashboard onNavigate={navigate} />}
+          {screen === 'dashboard'      && <Dashboard onNavigate={navigate} onExport={() => setExportOpen(true)} />}
           {screen === 'projects'       && <Projects onSelectProject={selectProject} />}
           {screen === 'project-detail' && <ProjectDetail project={selectedProject} onBack={() => navigate('projects')} />}
           {screen === 'team'           && <Team />}

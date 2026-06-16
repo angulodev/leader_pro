@@ -17,7 +17,7 @@ const ACTIVITY_ICONS = {
   assignment: { icon: 'person_add',       cls: 'act-assign'  },
 }
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate, onExport }) {
   const [kpi, setKpi] = useState(null)
   const [risks, setRisks] = useState([])
   const [activity, setActivity] = useState([])
@@ -40,7 +40,7 @@ export default function Dashboard({ onNavigate }) {
           <p className="page-sub">Vista ejecutiva · {new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-ghost"><span className="mat-icon">download</span><span>Exportar</span></button>
+          <button className="btn btn-ghost" onClick={onExport}><span className="mat-icon">picture_as_pdf</span><span>Exportar</span></button>
           <button className="btn btn-primary" onClick={() => onNavigate('projects')}>
             <span className="mat-icon">add</span><span>Nuevo proyecto</span>
           </button>
