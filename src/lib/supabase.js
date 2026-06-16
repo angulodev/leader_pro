@@ -212,3 +212,25 @@ export async function toggleProjectMember(projectId, memberId, add) {
     if (error) throw error
   }
 }
+
+// ── Reports ───────────────────────────────────────
+export async function getReportSummary() {
+  const { data, error } = await supabase.rpc('al_report_summary')
+  if (error) throw error
+  return data
+}
+export async function getReportProgress() {
+  const { data, error } = await supabase.rpc('al_report_progress')
+  if (error) throw error
+  return data || []
+}
+export async function getReportActivity(days = 14) {
+  const { data, error } = await supabase.rpc('al_report_activity', { p_days: days })
+  if (error) throw error
+  return data || []
+}
+export async function getReportTeamLoad() {
+  const { data, error } = await supabase.rpc('al_report_team_load')
+  if (error) throw error
+  return data || []
+}

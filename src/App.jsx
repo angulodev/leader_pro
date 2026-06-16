@@ -4,6 +4,7 @@ import Projects from './components/Projects'
 import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
 import Team from './components/Team'
+import Reports from './components/Reports'
 import { getProjects, getActivity } from './lib/supabase'
 import Notifications from './components/Notifications'
 import './index.css'
@@ -151,15 +152,12 @@ export default function App() {
           {screen === 'project-detail' && <ProjectDetail project={selectedProject} onBack={() => navigate('projects')} />}
           {screen === 'team'           && <Team />}
           {screen === 'workload'       && <Workload />}
-          {(screen === 'reports' || screen === 'settings') && (
+          {screen === 'reports'  && <Reports />}
+          {screen === 'settings' && (
             <div className="screen-content">
-              <div className="page-header">
-                <h1 className="page-title">{screen === 'reports' ? 'Reportes' : 'Configuración'}</h1>
-              </div>
+              <div className="page-header"><h1 className="page-title">Configuración</h1></div>
               <div className="card" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-                <span className="mat-icon" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>
-                  {screen === 'reports' ? 'bar_chart' : 'settings'}
-                </span>
+                <span className="mat-icon" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>settings</span>
                 Módulo disponible próximamente
               </div>
             </div>
