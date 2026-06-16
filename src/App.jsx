@@ -3,22 +3,21 @@ import Dashboard from './components/Dashboard'
 import Projects from './components/Projects'
 import ProjectDetail from './components/ProjectDetail'
 import Workload from './components/Workload'
+import Team from './components/Team'
 import './index.css'
 
 const NAV = [
-  { id: 'dashboard', icon: 'grid_view',       label: 'Dashboard'  },
-  { id: 'projects',  icon: 'folder_open',      label: 'Proyectos'  },
-  { id: 'workload',  icon: 'groups',           label: 'Equipo'     },
-  { id: 'reports',   icon: 'bar_chart',        label: 'Reportes'   },
-]
-const NAV_BOTTOM = [
-  { id: 'settings',  icon: 'settings',         label: 'Configuración' },
+  { id: 'dashboard', icon: 'grid_view',    label: 'Dashboard'  },
+  { id: 'projects',  icon: 'folder_open',  label: 'Proyectos'  },
+  { id: 'team',      icon: 'groups',       label: 'Equipo'     },
+  { id: 'workload',  icon: 'balance',      label: 'Carga'      },
+  { id: 'reports',   icon: 'bar_chart',    label: 'Reportes'   },
 ]
 
 export default function App() {
-  const [screen, setScreen] = useState('dashboard')
+  const [screen, setScreen]               = useState('dashboard')
   const [selectedProject, setSelectedProject] = useState(null)
-  const [sideOpen, setSideOpen] = useState(false)
+  const [sideOpen, setSideOpen]           = useState(false)
 
   function navigate(id) {
     setScreen(id)
@@ -32,12 +31,18 @@ export default function App() {
     setSideOpen(false)
   }
 
+  const activeNav = screen === 'project-detail' ? 'projects' : screen
+
   return (
     <div className="app">
       {/* ── TOP NAV ── */}
       <header className="topnav">
-        <button className="icon-btn mobile-menu-btn" onClick={() => setSideOpen(o => !o)} aria-label="Menu">
-          <span className="mat-icon">menu</span>
+        <button
+          className="icon-btn mobile-menu-btn"
+          onClick={() => setSideOpen(o => !o)}
+          aria-label="Menú"
+        >
+          <span className="mat-icon">{sideOpen ? 'close' : 'menu'}</span>
         </button>
         <div className="brand">
           <div className="brand-icon"><span className="mat-icon">hub</span></div>
@@ -60,18 +65,20 @@ export default function App() {
       </header>
 
       <div className="layout">
-        {/* ── SIDEBAR OVERLAY (mobile) ── */}
+        {/* ── SIDEBAR OVERLAY ── */}
         {sideOpen && <div className="sidebar-overlay" onClick={() => setSideOpen(false)} />}
 
         {/* ── SIDEBAR ── */}
         <aside className={`sidenav ${sideOpen ? 'open' : ''}`}>
           <div className="sidenav-inner">
+
+            {/* Main nav */}
             <nav className="sidenav-main">
               <div className="sidenav-section-label">Principal</div>
               {NAV.map(n => (
                 <button
                   key={n.id}
-                  className={`nav-item ${screen === n.id || (screen === 'project-detail' && n.id === 'projects') ? 'active' : ''}`}
+                  className={`nav-item ${activeNav === n.id ? 'active' : ''}`}
                   onClick={() => navigate(n.id)}
                 >
                   <span className="mat-icon nav-icon">{n.icon}</span>
@@ -79,31 +86,40 @@ export default function App() {
                   {n.id === 'projects' && <span className="nav-badge">7</span>}
                 </button>
               ))}
-
-              <div className="sidenav-divider" />
-              <div className="sidenav-section-label">Proyectos activos</div>
-              <button className="nav-item sub" onClick={() => navigate('projects')}>
-                <span className="mat-icon nav-icon">rocket_launch</span>
-                <span>Infra Modernization</span>
-              </button>
-              <button className="nav-item sub" onClick={() => navigate('projects')}>
-                <span className="mat-icon nav-icon">security</span>
-                <span>Security Upgrade</span>
-              </button>
-              <button className="nav-item sub" onClick={() => navigate('projects')}>
-                <span className="mat-icon nav-icon">cloud_upload</span>
-                <span>Cloud Migration</span>
-              </button>
             </nav>
 
-            <div className="sidenav-bottom">
+            {/* Active projects — compact, no wasted space */}
+            <div className="sidenav-projects-section">
               <div className="sidenav-divider" />
-              {NAV_BOTTOM.map(n => (
-                <button key={n.id} className="nav-item" onClick={() => navigate(n.id)}>
-                  <span className="mat-icon nav-icon">{n.icon}</span>
-                  <span>{n.label}</span>
+              <div className="sidenav-section-label">Proyectos activos</div>
+              {[
+                { icon: 'rocket_launch', label: 'Infra Modernization', color: '#3b82f6' },
+                { icon: 'security',      label: 'Security Upgrade',    color: '#8b5cf6' },
+                { icon: 'cloud_upload',  label: 'Cloud Migration',     color: '#10b981' },
+              ].map(p => (
+                <button key={p.label} className="nav-item nav-item-project" onClick={() => navigate('projects')}>
+                  <span className="project-dot" style={{ background: p.color }} />
+                  <span className="nav-item-project-label">{p.label}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Bottom */}
+            <div className="sidenav-bottom">
+              <div className="sidenav-divider" />
+              <button className="nav-item" onClick={() => navigate('settings')}>
+                <span className="mat-icon nav-icon">settings</span>
+                <span>Configuración</span>
+              </button>
+
+              {/* User info at bottom */}
+              <div className="sidenav-user">
+                <div className="avatar-circle" style={{ width: 32, height: 32, background: '#1e293b', fontSize: 12, flexShrink: 0 }}>FA</div>
+                <div className="sidenav-user-info">
+                  <div className="sidenav-user-name">Francisco A.</div>
+                  <div className="sidenav-user-role">Area Leader</div>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
@@ -113,22 +129,18 @@ export default function App() {
           {screen === 'dashboard'      && <Dashboard onNavigate={navigate} />}
           {screen === 'projects'       && <Projects onSelectProject={selectProject} />}
           {screen === 'project-detail' && <ProjectDetail project={selectedProject} onBack={() => navigate('projects')} />}
+          {screen === 'team'           && <Team />}
           {screen === 'workload'       && <Workload />}
-          {screen === 'reports'        && (
+          {(screen === 'reports' || screen === 'settings') && (
             <div className="screen-content">
-              <div className="page-header"><h1 className="page-title">Reportes</h1></div>
-              <div className="card" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-                <span className="mat-icon" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>bar_chart</span>
-                Módulo de reportes disponible próximamente
+              <div className="page-header">
+                <h1 className="page-title">{screen === 'reports' ? 'Reportes' : 'Configuración'}</h1>
               </div>
-            </div>
-          )}
-          {screen === 'settings' && (
-            <div className="screen-content">
-              <div className="page-header"><h1 className="page-title">Configuración</h1></div>
               <div className="card" style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
-                <span className="mat-icon" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>settings</span>
-                Configuración del área
+                <span className="mat-icon" style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>
+                  {screen === 'reports' ? 'bar_chart' : 'settings'}
+                </span>
+                Módulo disponible próximamente
               </div>
             </div>
           )}
@@ -140,7 +152,7 @@ export default function App() {
         {NAV.map(n => (
           <button
             key={n.id}
-            className={`bottom-nav-item ${screen === n.id ? 'active' : ''}`}
+            className={`bottom-nav-item ${activeNav === n.id ? 'active' : ''}`}
             onClick={() => navigate(n.id)}
           >
             <span className="mat-icon">{n.icon}</span>
