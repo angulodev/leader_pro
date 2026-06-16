@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getAllMembers, upsertMember, deactivateMember, activateMember } from '../lib/supabase'
+import { getAllMembers, upsertMember } from '../lib/supabase'
 import { Avatar, Skeleton, EmptyState } from './UI'
 
 const COLORS = [
@@ -12,16 +12,54 @@ function autoInitials(name) {
   return name.trim().split(' ').slice(0,2).map(w => w[0]?.toUpperCase() || '').join('')
 }
 
+// ── Toast ──────────────────────────────────────────
+function Toast({ msg, type = 'success', onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2800)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div className={`toast toast-${type}`}>
+      <span className="mat-icon">{type === 'success' ? 'check_circle' : 'error_outline'}</span>
+      {msg}
+    </div>
+  )
+}
+
+// ── Confirm modal ──────────────────────────────────
+function ConfirmModal({ title, message, confirmLabel, confirmClass = 'btn-primary', onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
+      <div className="modal modal-sm">
+        <div className="modal-header">
+          <h2 className="modal-title">{title}</h2>
+          <button className="icon-btn" onClick={onCancel}>
+            <span className="mat-icon">close</span>
+          </button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{message}</p>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onCancel}>Cancelar</button>
+          <button className={`btn ${confirmClass}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Team() {
-  const [members, setMembers]     = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [showModal, setShowModal] = useState(false)
+  const [members, setMembers]         = useState([])
+  const [loading, setLoading]         = useState(true)
   const [showInactive, setShowInactive] = useState(false)
-  const [editing, setEditing]     = useState(null)
-  const [form, setForm]           = useState(EMPTY_FORM)
-  const [saving, setSaving]       = useState(false)
-  const [busy, setBusy]           = useState(null)
-  const [error, setError]         = useState('')
+  const [showModal, setShowModal]     = useState(false)
+  const [editing, setEditing]         = useState(null)
+  const [form, setForm]               = useState(EMPTY_FORM)
+  const [saving, setSaving]           = useState(false)
+  const [error, setError]             = useState('')
+  const [confirm, setConfirm]         = useState(null)  // { member, action }
+  const [toast, setToast]             = useState(null)  // { msg, type }
 
   const load = () => {
     setLoading(true)
@@ -33,37 +71,63 @@ export default function Team() {
   const inactive = members.filter(m => m.active === false)
   const visible  = showInactive ? members : active
 
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type })
+  }
+
   function openNew() {
     setEditing(null); setForm(EMPTY_FORM); setError(''); setShowModal(true)
   }
   function openEdit(m) {
     setEditing(m)
-    setForm({ name: m.name, initials: m.initials, role: m.role, color: m.color, email: m.email || '', active: m.active !== false })
+    setForm({ name: m.name, initials: m.initials, role: m.role,
+              color: m.color, email: m.email || '', active: m.active !== false })
     setError(''); setShowModal(true)
   }
 
   async function handleSave() {
     if (!form.name.trim() || !form.role.trim()) { setError('Nombre y rol son obligatorios.'); return }
+
+    // Si está cambiando estado, pedir confirmación
+    if (editing && form.active !== (editing.active !== false)) {
+      setShowModal(false)
+      setConfirm({
+        member: editing,
+        action: form.active ? 'activate' : 'deactivate',
+        pendingForm: { ...form },
+      })
+      return
+    }
+
+    await doSave(form)
+  }
+
+  async function doSave(formData) {
     setSaving(true); setError('')
     try {
-      await upsertMember({ ...form, id: editing?.id, active: form.active })
-      setShowModal(false); load()
+      await upsertMember({ ...formData, id: editing?.id })
+      setShowModal(false)
+      load()
+      showToast(editing ? `${formData.name} actualizado correctamente.` : `${formData.name} agregado al equipo.`)
     } catch(e) { setError(e.message || 'Error al guardar.') }
     finally { setSaving(false) }
   }
 
-  async function handleDeactivate(m) {
-    setBusy(m.id)
-    try { await deactivateMember(m.id); load() }
-    catch(e) { alert('Error: ' + e.message) }
-    finally { setBusy(null) }
-  }
-
-  async function handleActivate(m) {
-    setBusy(m.id)
-    try { await activateMember(m.id); load() }
-    catch(e) { alert('Error: ' + e.message) }
-    finally { setBusy(null) }
+  async function handleConfirmAction() {
+    const { action, pendingForm, member } = confirm
+    setConfirm(null)
+    setSaving(true)
+    try {
+      await upsertMember({ ...pendingForm, id: member.id })
+      load()
+      showToast(
+        action === 'activate'
+          ? `${member.name} está activo nuevamente.`
+          : `${member.name} fue desactivado.`,
+        action === 'activate' ? 'success' : 'warning'
+      )
+    } catch(e) { showToast(e.message, 'error') }
+    finally { setSaving(false) }
   }
 
   return (
@@ -72,15 +136,15 @@ export default function Team() {
         <div>
           <h1 className="page-title">Gestión de Equipo</h1>
           <p className="page-sub">
-            {active.length} activas
-            {inactive.length > 0 && ` · ${inactive.length} inactiva${inactive.length > 1 ? 's' : ''}`}
+            {active.length} activa{active.length !== 1 ? 's' : ''}
+            {inactive.length > 0 && ` · ${inactive.length} inactiva${inactive.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         <div className="header-actions">
           {inactive.length > 0 && (
             <button className="btn btn-ghost" onClick={() => setShowInactive(v => !v)}>
               <span className="mat-icon">{showInactive ? 'visibility_off' : 'visibility'}</span>
-              <span>{showInactive ? 'Ocultar inactivos' : 'Ver inactivos'}</span>
+              <span>{showInactive ? 'Ocultar' : 'Ver inactivos'}</span>
             </button>
           )}
           <button className="btn btn-primary" onClick={openNew}>
@@ -91,7 +155,7 @@ export default function Team() {
       </div>
 
       {loading ? (
-        <div className="team-grid-members">{[1,2,3,4].map(i => <Skeleton key={i} h={160} />)}</div>
+        <div className="team-grid-members">{[1,2,3,4].map(i => <Skeleton key={i} h={160}/>)}</div>
       ) : visible.length === 0 ? (
         <EmptyState icon="group_off" title="Sin miembros" sub="Agrega personas a tu equipo." />
       ) : (
@@ -99,7 +163,8 @@ export default function Team() {
           {visible.map(m => {
             const isInactive = m.active === false
             return (
-              <div key={m.id} className={`member-card ${isInactive ? 'member-card-inactive' : ''}`}>
+              <div key={m.id} className={`member-card ${isInactive ? 'member-card-inactive' : ''}`}
+                onClick={() => openEdit(m)} style={{ cursor: 'pointer' }}>
                 <div className="member-card-top">
                   <div style={{ position: 'relative' }}>
                     <Avatar initials={m.initials} color={isInactive ? '#94a3b8' : m.color} size={52} />
@@ -109,23 +174,10 @@ export default function Team() {
                       </div>
                     )}
                   </div>
-                  <div className="member-actions">
-                    {!isInactive && (
-                      <button className="icon-btn" onClick={() => openEdit(m)} title="Editar">
-                        <span className="mat-icon">edit</span>
-                      </button>
-                    )}
-                    <button
-                      className={`icon-btn ${isInactive ? 'icon-btn-success' : 'icon-btn-danger'}`}
-                      onClick={() => isInactive ? handleActivate(m) : handleDeactivate(m)}
-                      disabled={busy === m.id}
-                      title={isInactive ? 'Reactivar' : 'Desactivar'}
-                    >
-                      <span className="mat-icon">
-                        {busy === m.id ? 'hourglass_empty' : isInactive ? 'person_check' : 'person_off'}
-                      </span>
-                    </button>
-                  </div>
+                  {/* Solo ícono de editar — sin botón de desactivar */}
+                  <button className="icon-btn" onClick={e => { e.stopPropagation(); openEdit(m) }} title="Editar">
+                    <span className="mat-icon">edit</span>
+                  </button>
                 </div>
                 <div className="member-name" style={{ color: isInactive ? 'var(--text-muted)' : undefined }}>
                   {m.name}
@@ -149,7 +201,7 @@ export default function Team() {
         </div>
       )}
 
-      {/* ── MODAL ── */}
+      {/* ── Edit/New Modal ── */}
       {showModal && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="modal">
@@ -161,17 +213,18 @@ export default function Team() {
             </div>
             <div className="modal-body">
               <div className="member-preview">
-                <Avatar initials={form.initials || '?'} color={form.color} size={52} />
+                <Avatar initials={form.initials || '?'} color={form.active ? form.color : '#94a3b8'} size={52} />
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{form.name || 'Nombre completo'}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{form.role || 'Rol / Cargo'}</div>
                 </div>
               </div>
+
               <div className="form-group">
                 <label className="form-label">Nombre completo *</label>
-                <input className="form-input" value={form.name}
+                <input className="form-input" autoFocus value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value, initials: autoInitials(e.target.value) }))}
-                  placeholder="ej. María López" autoFocus />
+                  placeholder="ej. María López" />
               </div>
               <div className="form-row">
                 <div className="form-group">
@@ -202,32 +255,27 @@ export default function Team() {
                   ))}
                 </div>
               </div>
-              {/* Estado — solo visible al editar */}
+
+              {/* Estado — solo al editar */}
               {editing && (
                 <div className="form-group">
-                  <label className="form-label">Estado de la persona</label>
+                  <label className="form-label">Estado</label>
                   <div className="status-toggle-row">
-                    <button
-                      type="button"
+                    <button type="button"
                       className={`status-toggle-btn ${form.active ? 'active' : ''}`}
-                      onClick={() => setForm(f => ({ ...f, active: true }))}
-                    >
-                      <span className="mat-icon">check_circle</span>
-                      Activo
+                      onClick={() => setForm(f => ({ ...f, active: true }))}>
+                      <span className="mat-icon">check_circle</span> Activo
                     </button>
-                    <button
-                      type="button"
+                    <button type="button"
                       className={`status-toggle-btn ${!form.active ? 'inactive' : ''}`}
-                      onClick={() => setForm(f => ({ ...f, active: false }))}
-                    >
-                      <span className="mat-icon">block</span>
-                      Inactivo
+                      onClick={() => setForm(f => ({ ...f, active: false }))}>
+                      <span className="mat-icon">block</span> Inactivo
                     </button>
                   </div>
                   {!form.active && (
                     <p className="form-hint">
                       <span className="mat-icon" style={{fontSize:13}}>info</span>
-                      La persona no aparecerá en asignaciones ni en el equipo activo.
+                      No aparecerá en asignaciones ni en el equipo activo.
                     </p>
                   )}
                 </div>
@@ -246,6 +294,25 @@ export default function Team() {
           </div>
         </div>
       )}
+
+      {/* ── Confirm modal ── */}
+      {confirm && (
+        <ConfirmModal
+          title={confirm.action === 'activate' ? 'Reactivar persona' : 'Desactivar persona'}
+          message={
+            confirm.action === 'activate'
+              ? `¿Confirmas reactivar a ${confirm.member.name}? Volverá a aparecer en el equipo y en las asignaciones.`
+              : `¿Confirmas desactivar a ${confirm.member.name}? No aparecerá en el equipo activo ni en nuevas asignaciones. Puedes reactivarlo después.`
+          }
+          confirmLabel={confirm.action === 'activate' ? 'Sí, reactivar' : 'Sí, desactivar'}
+          confirmClass={confirm.action === 'activate' ? 'btn-primary' : 'btn-danger'}
+          onConfirm={handleConfirmAction}
+          onCancel={() => { setConfirm(null); setShowModal(true) }}
+        />
+      )}
+
+      {/* ── Toast ── */}
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   )
 }
