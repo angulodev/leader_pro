@@ -109,31 +109,45 @@ function AppInner() {
     <div className="app">
       {/* ── TOP NAV ── */}
       <header className="topnav">
-        <button className="icon-btn mobile-menu-btn" onClick={() => setSideOpen(o => !o)}>
-          <span className="mat-icon">{sideOpen ? 'close' : 'menu'}</span>
+        <button
+          className={`icon-btn mobile-menu-btn ${sidePinned ? 'is-pinned' : ''}`}
+          title={sidePinned ? 'Desanclar sidebar' : sideOpen ? 'Cerrar sidebar' : 'Abrir sidebar'}
+          onClick={() => {
+            if (sidePinned) {
+              // Click when pinned = unpin + close
+              setSidePinned(false)
+              setSideOpen(false)
+              try {
+                const k = 'alp_user_prefs'
+                const cur = JSON.parse(localStorage.getItem(k) || '{}')
+                localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: false }))
+              } catch(e) {}
+            } else if (sideOpen) {
+              // Click when open (not pinned) = pin it
+              setSidePinned(true)
+              try {
+                const k = 'alp_user_prefs'
+                const cur = JSON.parse(localStorage.getItem(k) || '{}')
+                localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: true }))
+              } catch(e) {}
+            } else {
+              // Click when closed = open it
+              setSideOpen(true)
+            }
+          }}>
+          <span className="mat-icon" style={{
+            transform: sidePinned ? 'rotate(-45deg)' : 'none',
+            transition: 'transform .2s',
+            color: sidePinned ? 'var(--accent)' : 'inherit'
+          }}>
+            {sidePinned ? 'push_pin' : sideOpen ? 'push_pin' : 'menu'}
+          </span>
         </button>
         <div className="brand" onClick={() => navigate('/')} style={{cursor:'pointer'}}>
           <div className="brand-icon"><span className="mat-icon">hub</span></div>
           <span className="brand-name">Area Leader Pro</span>
         </div>
-        {/* Pin sidebar button — desktop only, next to brand */}
-        <button
-          className={`icon-btn sidebar-pin-topnav ${sidePinned ? 'pinned' : ''}`}
-          onClick={() => {
-            const next = !sidePinned
-            setSidePinned(next)
-            if (!next) setSideOpen(false)
-            else setSideOpen(true)
-            try {
-              const k = 'alp_user_prefs'
-              const cur = JSON.parse(localStorage.getItem(k) || '{}')
-              localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: next }))
-            } catch(e) {}
-          }}
-          title={sidePinned ? 'Desanclar sidebar' : 'Anclar sidebar'}
-        >
-          <span className="mat-icon" style={{fontSize:18, transform: sidePinned ? 'rotate(-45deg)' : 'none', transition:'transform .2s'}}>push_pin</span>
-        </button>
+
         <div className="topnav-search">
           <span className="mat-icon search-icon-nav">search</span>
           <input type="text" placeholder="Buscar proyectos, tareas…" />
@@ -147,10 +161,6 @@ function AppInner() {
             </button>
             {notifOpen && <Notifications onClose={() => setNotifOpen(false)} />}
           </div>
-          <button className="icon-btn" title="Cerrar sesión"
-            onClick={async () => { await supabase.auth.signOut(); setSession(null) }}>
-            <span className="mat-icon">logout</span>
-          </button>
           <div style={{ position: 'relative' }}>
             <div className="avatar-circle topnav-avatar"
               style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
@@ -199,24 +209,11 @@ function AppInner() {
 
             <div className="sidenav-bottom">
               <div className="sidenav-divider" />
-              <div className="sidenav-user\"
-                onClick={() => { setUserPanelOpen(true); if (!sidePinned) setSideOpen(false) }}
-                style={{cursor:'pointer',borderRadius:'var(--radius)',transition:'background .12s'}}
-                onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
-                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                <div className="avatar-circle" style={{width:32,height:32,background:userPrefs.color||'#1e293b',fontSize:12,flexShrink:0}}>
-                  {(userPrefs.name||'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
-                </div>
-                <div className="sidenav-user-info">
-                  <div className="sidenav-user-name">{userPrefs.name || 'Francisco A.'}</div>
-                  <div className="sidenav-user-role">{userPrefs.role || 'Area Leader'}</div>
-                </div>
-                <button className="icon-btn" style={{width:28,height:28,flexShrink:0,marginLeft:'auto'}}
-                  onClick={e=>{e.stopPropagation();navigate('/settings');if(!sidePinned)setSideOpen(false)}}
-                  title="Configuración">
-                  <span className="mat-icon" style={{fontSize:17}}>settings</span>
-                </button>
-              </div>
+              <button className="nav-item nav-item-settings"
+                onClick={() => { navigate('/settings'); if (!sidePinned) setSideOpen(false) }}>
+                <span className="mat-icon nav-icon">settings</span>
+                <span>Configuración</span>
+              </button>
             </div>
           </div>
         </aside>

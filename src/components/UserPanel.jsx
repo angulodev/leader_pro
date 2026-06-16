@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { supabase } from '../lib/supabase'
 import { getUserPrefs, saveUserPrefs } from '../lib/supabase'
 import { Avatar } from './UI'
 
@@ -321,6 +322,21 @@ export default function UserPanel({ onClose }) {
                 Ver en GitHub →
               </a>
             </div>
+
+            <div className="pref-divider" />
+
+            {/* Logout */}
+            <button
+              className="btn btn-danger"
+              style={{ width:'100%', justifyContent:'center' }}
+              onClick={async () => {
+                await supabase.auth.signOut()
+                onClose()
+              }}
+            >
+              <span className="mat-icon">logout</span>
+              Cerrar sesión
+            </button>
           </div>
         )}
       </div>

@@ -2361,3 +2361,16 @@ tbody tr:last-child td { border-bottom: none; }
 [data-theme="dark"] .btn-google { background: #1e293b; border-color: #334155; }
 [data-theme="dark"] .login-card { background: #1e293b; border-color: #334155; }
 [data-theme="dark"] .login-demo { background: #0f172a; border-color: #334155; }
+
+/* ── Hamburger as smart toggle ── */
+.mobile-menu-btn[data-pinned="true"] .mat-icon {
+  color: var(--accent);
+  transform: rotate(-45deg);
+  transition: transform .2s;
+}
+.mobile-menu-btn .mat-icon {
+  transition: transform .2s;
+}
+
+/* Hide old pin topnav button (removed from JSX) */
+.sidebar-pin-topnav { display: none !important; }
