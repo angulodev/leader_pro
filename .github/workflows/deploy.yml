@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build app
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -32,6 +32,11 @@ jobs:
 
       - name: Copy index.html as 404.html (SPA routing)
         run: cp dist/index.html dist/404.html
+
+      - name: Copy marketing landing page
+        run: |
+          mkdir -p dist/marketing
+          cp marketing/index.html dist/marketing/index.html
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
