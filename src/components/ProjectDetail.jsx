@@ -8,6 +8,15 @@ import {
 import { StatusTag, Avatar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
 
+
+const RISK_STATUS = {
+  active:     { label: 'Activo',        icon: 'radio_button_checked', color: '#ef4444', bg: '#fee2e2' },
+  mitigating: { label: 'En mitigación', icon: 'pending',              color: '#f59e0b', bg: '#fef3c7' },
+  mitigated:  { label: 'Mitigado',      icon: 'check_circle',         color: '#10b981', bg: '#d1fae5' },
+  closed:     { label: 'Cerrado',       icon: 'cancel',               color: '#64748b', bg: '#f1f5f9' },
+  accepted:   { label: 'Aceptado',      icon: 'thumb_up',             color: '#8b5cf6', bg: '#ede9fe' },
+}
+
 const STATUSES = [
   { value: 'todo',        label: '📋 Pendiente'   },
   { value: 'in-progress', label: '🚀 En curso'    },
@@ -47,7 +56,11 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
   const [taskForm, setTaskForm]     = useState(EMPTY_TASK)
   const [savingTask, setSavingTask] = useState(false)
   const [deletingTask, setDeletingTask] = useState(null)
-  const [taskConfirm, setTaskConfirm]   = useState(null) // task to confirm delete
+  const [taskConfirm, setTaskConfirm]   = useState(null)
+  const [taskSort, setTaskSort]         = useState({ col: 'title', dir: 'asc' })
+  const [taskSearch, setTaskSearch]     = useState('')
+  const [riskFilter, setRiskFilter]     = useState('')
+  const [riskConfirm, setRiskConfirm]   = useState(null)
   const [toast, setToast]               = useState(null)
   // Risk modal
   const [riskModal, setRiskModal]     = useState(null)
@@ -177,27 +190,35 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
 
   // ── Risk handlers ──
   function openNewRisk() {
-    setRiskForm({ title:'', description:'', severity:'medium', time_delta:'', budget_delta:'' })
+    setRiskForm({ title:'', description:'', severity:'medium', time_delta:'', budget_delta:'', status:'active' })
     setRiskModal('new')
   }
   function openEditRisk(r) {
-    setRiskForm({ title:r.title, description:r.description||'', severity:r.severity, time_delta:r.time_delta||'', budget_delta:r.budget_delta||'' })
+    setRiskForm({ title:r.title, description:r.description||'', severity:r.severity, time_delta:r.time_delta||'', budget_delta:r.budget_delta||'', status:r.status||'active' })
     setRiskModal(r)
   }
   async function handleSaveRisk() {
     if (!riskForm.title.trim()) return
     setSavingRisk(true)
     try {
-      await upsertRisk({ ...riskForm, id: riskModal !== 'new' ? riskModal.id : null, project_id: project.id })
+      await upsertRisk({ ...riskForm, id: riskModal !== 'new' ? riskModal.id : null, project_id: project.id, status: riskForm.status || 'active' })
       setRiskModal(null)
       loadAll()
     } catch(e) { alert(e.message) }
     finally { setSavingRisk(false) }
   }
-  async function handleDeleteRisk(id, e) {
+  function handleDeleteRisk(risk, e) {
     e.stopPropagation()
-    setDeletingRisk(id)
-    try { await deleteRisk(id); loadAll() }
+    setRiskConfirm(risk)
+  }
+
+  async function confirmDeleteRisk() {
+    const risk = riskConfirm
+    setRiskConfirm(null)
+    setDeletingRisk(risk.id)
+    try { await deleteRisk(risk.id); loadAll()
+      setToast({ msg: `Riesgo "${risk.title}" eliminado.`, type: 'success' })
+    }
     catch(e) { alert(e.message) }
     finally { setDeletingRisk(null) }
   }
@@ -368,98 +389,155 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
           )}
 
           {/* ════ TASKS ════ */}
-          {tab === 'tasks' && (
-            <div>
-              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
-                <button className="btn btn-primary" onClick={openNewTask}>
-                  <span className="mat-icon">add</span> Nueva tarea
-                </button>
-              </div>
-              {loading ? <Skeleton h={150}/> : tasks.length === 0
-                ? <EmptyState icon="task_alt" title="Sin tareas" sub="Crea la primera tarea de este proyecto."/>
-                : (
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr><th>Tarea</th><th>Asignado</th><th>Estado</th><th>Vence</th><th></th></tr>
-                      </thead>
-                      <tbody>
-                        {tasks.map(t => (
-                          <tr key={t.id} className="row-hover" onClick={()=>openEditTask(t)}>
-                            <td>
-                              <div className="td-name">{t.title}</div>
-                              {t.group_name && <div className="td-sub">{t.group_name}</div>}
-                            </td>
-                            <td>
-                              {t.assigned
-                                ? <div className="td-leader">
-                                    <Avatar initials={t.assigned.initials} color={t.assigned.color} size={24}/>
-                                    <span>{t.assigned.name.split(' ')[0]}</span>
-                                  </div>
-                                : <span style={{color:'var(--text-muted)',fontSize:11}}>Sin asignar</span>
-                              }
-                            </td>
-                            <td><StatusTag status={t.status}/></td>
-                            <td>
-                              <span className={`due-date ${t.due_date&&new Date(t.due_date)<new Date()&&t.status!=='completed'?'overdue':''}`}>
-                                {t.due_date?new Date(t.due_date).toLocaleDateString('es-CL'):'—'}
-                              </span>
-                            </td>
-                            <td onClick={e=>e.stopPropagation()}>
-                              <button className="icon-btn icon-btn-danger"
-                                disabled={deletingTask===t.id}
-                                onClick={e=>handleDeleteTask(t,e)}>
-                                <span className="mat-icon">{deletingTask===t.id?'hourglass_empty':'delete_outline'}</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+          {tab === 'tasks' && (() => {
+            // Sort + filter logic
+            const sortedTasks = [...tasks]
+              .filter(t => !taskSearch || t.title.toLowerCase().includes(taskSearch.toLowerCase()) || (t.group_name||'').toLowerCase().includes(taskSearch.toLowerCase()))
+              .sort((a,b) => {
+                let av = a[taskSort.col] || '', bv = b[taskSort.col] || ''
+                if (taskSort.col === 'due_date') { av = av||'9999'; bv = bv||'9999' }
+                const r = av < bv ? -1 : av > bv ? 1 : 0
+                return taskSort.dir === 'asc' ? r : -r
+              })
+            const sortIcon = col => taskSort.col !== col ? 'unfold_more' : taskSort.dir === 'asc' ? 'arrow_upward' : 'arrow_downward'
+            const setSort  = col => setTaskSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
+            return (
+              <div>
+                <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+                  <div className="search-wrap" style={{flex:1,minWidth:180}}>
+                    <span className="mat-icon search-icon">search</span>
+                    <input className="filter-input" placeholder="Buscar tareas…"
+                      value={taskSearch} onChange={e=>setTaskSearch(e.target.value)}/>
                   </div>
-                )
-              }
-            </div>
-          )}
+                  <button className="btn btn-primary" onClick={openNewTask}>
+                    <span className="mat-icon">add</span><span>Nueva tarea</span>
+                  </button>
+                </div>
+                {loading ? <Skeleton h={150}/> : tasks.length === 0
+                  ? <EmptyState icon="task_alt" title="Sin tareas" sub="Crea la primera tarea de este proyecto."/>
+                  : (
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            {[
+                              {col:'title',     label:'Tarea'},
+                              {col:'group_name',label:'Grupo'},
+                              {col:'assigned_name', label:'Asignado'},
+                              {col:'status',    label:'Estado'},
+                              {col:'due_date',  label:'Vence'},
+                            ].map(h => (
+                              <th key={h.col} className="th-sortable" onClick={()=>setSort(h.col)}>
+                                <span className="th-inner">
+                                  {h.label}
+                                  <span className="mat-icon th-sort-icon">{sortIcon(h.col)}</span>
+                                </span>
+                              </th>
+                            ))}
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedTasks.length === 0
+                            ? <tr><td colSpan={6} style={{textAlign:'center',padding:24,color:'var(--text-muted)',fontSize:12}}>Sin resultados para "{taskSearch}"</td></tr>
+                            : sortedTasks.map(t => (
+                              <tr key={t.id} className="row-hover" onClick={()=>openEditTask(t)}>
+                                <td>
+                                  <div className="td-name">{t.title}</div>
+                                </td>
+                                <td><span style={{fontSize:11,color:'var(--text-muted)'}}>{t.group_name||'—'}</span></td>
+                                <td>
+                                  {t.assigned
+                                    ? <div className="td-leader">
+                                        <Avatar initials={t.assigned.initials} color={t.assigned.color} size={22}/>
+                                        <span style={{fontSize:11}}>{t.assigned.name.split(' ')[0]}</span>
+                                      </div>
+                                    : <span style={{color:'var(--text-muted)',fontSize:11}}>—</span>
+                                  }
+                                </td>
+                                <td><StatusTag status={t.status}/></td>
+                                <td>
+                                  <span className={`due-date ${t.due_date&&new Date(t.due_date)<new Date()&&t.status!=='completed'?'overdue':''}`}>
+                                    {t.due_date?new Date(t.due_date).toLocaleDateString('es-CL'):'—'}
+                                  </span>
+                                </td>
+                                <td onClick={e=>e.stopPropagation()}>
+                                  <button className="icon-btn icon-btn-danger"
+                                    disabled={deletingTask===t.id}
+                                    onClick={e=>handleDeleteTask(t,e)}>
+                                    <span className="mat-icon">{deletingTask===t.id?'hourglass_empty':'delete_outline'}</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                }
+              </div>
+            )
+          })()}
 
 
           {/* ════ RISKS ════ */}
           {tab === 'risks' && (
             <div>
-              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
-                <button className="btn btn-primary" onClick={openNewRisk}>
-                  <span className="mat-icon">add</span> Nuevo riesgo
-                </button>
+              <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
+                <select className="filter-select" value={riskFilter} onChange={e=>setRiskFilter(e.target.value)}>
+                  <option value="">Todos los estados</option>
+                  {Object.entries(RISK_STATUS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+                <div style={{marginLeft:'auto'}}>
+                  <button className="btn btn-primary" onClick={openNewRisk}>
+                    <span className="mat-icon">add</span><span>Nuevo riesgo</span>
+                  </button>
+                </div>
               </div>
               {loading ? <Skeleton h={120}/> : risks.length === 0
-                ? <EmptyState icon="shield_check" title="Sin riesgos registrados" sub="Agrega un riesgo si identificas algo que pueda afectar el proyecto."/>
-                : (
-                  <div className="risks-list">
-                    {risks.map(r => (
-                      <div key={r.id} className={`risk-card risk-${r.severity}`} onClick={() => openEditRisk(r)}>
-                        <div className="risk-card-left">
-                          <div className={`risk-sev-badge sev-${r.severity}`}>
-                            {r.severity === 'high' ? '🔴 Alto' : r.severity === 'medium' ? '🟡 Medio' : '🟢 Bajo'}
-                          </div>
-                          <div className="risk-card-body">
-                            <div className="risk-card-title">{r.title}</div>
-                            {r.description && <div className="risk-card-desc">{r.description}</div>}
-                            <div className="risk-card-meta">
-                              {r.time_delta   && <span className="risk-meta-tag"><span className="mat-icon">schedule</span>{r.time_delta}</span>}
-                              {r.budget_delta && <span className="risk-meta-tag"><span className="mat-icon">payments</span>{r.budget_delta}</span>}
-                              <span className="risk-meta-date">{new Date(r.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'short',year:'numeric'})}</span>
-                            </div>
-                          </div>
+                ? <EmptyState icon="shield" title="Sin riesgos registrados" sub="Agrega un riesgo si identificas algo que pueda afectar el proyecto."/>
+                : (() => {
+                    const filtered = riskFilter ? risks.filter(r => r.status === riskFilter) : risks
+                    return filtered.length === 0
+                      ? <p className="empty-sub">Sin riesgos con ese estado.</p>
+                      : (
+                        <div className="risks-list">
+                          {filtered.map(r => {
+                            const rs = RISK_STATUS[r.status] || RISK_STATUS.active
+                            return (
+                              <div key={r.id} className={`risk-card risk-${r.severity}`} onClick={() => openEditRisk(r)}>
+                                <div className="risk-card-left">
+                                  <div className={`risk-sev-badge sev-${r.severity}`}>
+                                    {r.severity === 'high' ? '🔴 Alto' : r.severity === 'medium' ? '🟡 Medio' : '🟢 Bajo'}
+                                  </div>
+                                  <div className="risk-card-body">
+                                    <div className="risk-card-title-row">
+                                      <span className="risk-card-title">{r.title}</span>
+                                      <span className="risk-status-tag" style={{background:rs.bg,color:rs.color}}>
+                                        <span className="mat-icon" style={{fontSize:12}}>{rs.icon}</span>
+                                        {rs.label}
+                                      </span>
+                                    </div>
+                                    {r.description && <div className="risk-card-desc">{r.description}</div>}
+                                    <div className="risk-card-meta">
+                                      {r.time_delta   && <span className="risk-meta-tag"><span className="mat-icon">schedule</span>{r.time_delta}</span>}
+                                      {r.budget_delta && <span className="risk-meta-tag"><span className="mat-icon">payments</span>{r.budget_delta}</span>}
+                                      <span className="risk-meta-date">{new Date(r.created_at).toLocaleDateString('es-CL',{day:'numeric',month:'short'})}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <button className="icon-btn icon-btn-danger"
+                                  disabled={deletingRisk===r.id}
+                                  onClick={e=>handleDeleteRisk(r,e)}>
+                                  <span className="mat-icon">{deletingRisk===r.id?'hourglass_empty':'delete_outline'}</span>
+                                </button>
+                              </div>
+                            )
+                          })}
                         </div>
-                        <button className="icon-btn icon-btn-danger"
-                          disabled={deletingRisk===r.id}
-                          onClick={e=>handleDeleteRisk(r.id,e)}>
-                          <span className="mat-icon">{deletingRisk===r.id?'hourglass_empty':'delete_outline'}</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )
+                      )
+                  })()
               }
             </div>
           )}
@@ -631,6 +709,25 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
                   ))}
                 </div>
               </div>
+              <div className="form-group">
+                <label className="form-label">Estado del riesgo</label>
+                <div className="status-list">
+                  {Object.entries(RISK_STATUS).map(([k,v]) => (
+                    <button key={k} type="button"
+                      className={`status-list-item ${riskForm.status===k?'selected':''}`}
+                      style={riskForm.status===k?{borderColor:v.color,background:v.bg}:{}}
+                      onClick={()=>setRiskForm(f=>({...f,status:k}))}>
+                      <span className="mat-icon sl-icon" style={{color:v.color,fontSize:18}}>{v.icon}</span>
+                      <div className="sl-text">
+                        <span className="sl-label">{v.label}</span>
+                      </div>
+                      <span className="mat-icon sl-check" style={{opacity:riskForm.status===k?1:.25}}>
+                        {riskForm.status===k?'radio_button_checked':'radio_button_unchecked'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Impacto en tiempo</label>
@@ -652,6 +749,33 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
                 {savingRisk
                   ? <><span className="mat-icon spin">refresh</span> Guardando…</>
                   : <><span className="mat-icon">check</span> {riskModal==='new'?'Crear riesgo':'Guardar'}</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* ── Risk confirm delete ── */}
+      {riskConfirm && (
+        <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)setRiskConfirm(null)}}>
+          <div className="modal modal-sm">
+            <div className="modal-header">
+              <h2 className="modal-title">Eliminar riesgo</h2>
+              <button className="icon-btn" onClick={()=>setRiskConfirm(null)}>
+                <span className="mat-icon">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{fontSize:13,color:'var(--text-secondary)',lineHeight:1.6,marginBottom:4}}>
+                ¿Confirmas eliminar el riesgo <strong>"{riskConfirm.title}"</strong>?
+              </p>
+              <p style={{fontSize:12,color:'var(--text-muted)'}}>Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost" onClick={()=>setRiskConfirm(null)}>Cancelar</button>
+              <button className="btn btn-danger" onClick={confirmDeleteRisk}>
+                <span className="mat-icon">delete_forever</span> Eliminar
               </button>
             </div>
           </div>

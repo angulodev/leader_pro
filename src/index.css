@@ -2247,3 +2247,33 @@ tbody tr:last-child td { border-bottom: none; }
 [data-theme="dark"] .nav-item-settings:hover {
   background: #334155;
 }
+
+/* ── Sortable table headers ── */
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sortable:hover { background: rgba(255,255,255,.06); }
+.th-inner {
+  display: flex; align-items: center; gap: 4px;
+}
+.th-sort-icon {
+  font-size: 13px !important;
+  opacity: .5;
+  flex-shrink: 0;
+}
+.th-sortable:hover .th-sort-icon { opacity: 1; }
+
+/* ── Risk status tag ── */
+.risk-card-title-row {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 8px;
+  margin-bottom: 3px;
+}
+.risk-status-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px;
+  white-space: nowrap; flex-shrink: 0;
+}

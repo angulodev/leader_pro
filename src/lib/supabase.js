@@ -256,6 +256,7 @@ export async function upsertRisk(risk) {
     p_severity:     risk.severity || 'medium',
     p_time_delta:   risk.time_delta || null,
     p_budget_delta: risk.budget_delta || null,
+    p_status:       risk.status || 'active',
   })
   if (error) throw error
   return data
