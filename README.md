@@ -1,6 +1,6 @@
 # Area Leader Pro
 
-Plataforma web de gestión de proyectos diseñada para líderes de área. Permite gestionar proyectos, equipos, tareas, riesgos y reportes en un solo lugar, con datos en tiempo real desde Supabase.
+Plataforma web de gestión de proyectos diseñada para líderes de área. Permite gestionar proyectos, equipos, tareas, riesgos y reportes en tiempo real, con exportación PDF ejecutiva personalizable por cliente.
 
 **Demo en vivo:** [angulodev.github.io/leader_pro](https://angulodev.github.io/leader_pro/)
 
@@ -10,13 +10,16 @@ Plataforma web de gestión de proyectos diseñada para líderes de área. Permit
 
 1. [Stack tecnológico](#stack-tecnológico)
 2. [Funcionalidades](#funcionalidades)
-3. [Estructura del proyecto](#estructura-del-proyecto)
-4. [Instalación local](#instalación-local)
-5. [Configuración de Supabase](#configuración-de-supabase)
-6. [Schema completo de base de datos](#schema-completo-de-base-de-datos)
-7. [Variables de entorno](#variables-de-entorno)
-8. [Deploy en producción](#deploy-en-producción)
-9. [CI/CD con GitHub Actions](#cicd-con-github-actions)
+3. [Rutas de la aplicación](#rutas-de-la-aplicación)
+4. [Estructura del proyecto](#estructura-del-proyecto)
+5. [Instalación local](#instalación-local)
+6. [Configuración de Supabase](#configuración-de-supabase)
+7. [Schema completo de base de datos](#schema-completo-de-base-de-datos)
+8. [Variables de entorno](#variables-de-entorno)
+9. [Personalización de usuario](#personalización-de-usuario)
+10. [Exportación de reportes PDF](#exportación-de-reportes-pdf)
+11. [Deploy en producción](#deploy-en-producción)
+12. [CI/CD con GitHub Actions](#cicd-con-github-actions)
 
 ---
 
@@ -25,54 +28,147 @@ Plataforma web de gestión de proyectos diseñada para líderes de área. Permit
 | Capa | Tecnología |
 |------|-----------|
 | Frontend | React 18 + Vite |
+| Router | React Router v6 (con soporte SPA en GitHub Pages) |
 | Base de datos | Supabase (PostgreSQL 17) |
-| Iconos | Material Symbols Rounded (Google Fonts) |
+| Iconos | Material Symbols Rounded (Google Fonts, variable font) |
 | Tipografía | Inter (Google Fonts) |
-| Estilos | CSS custom (sin framework de CSS) |
-| Deploy | GitHub Pages via GitHub Actions |
+| Estilos | CSS custom con design tokens (sin framework CSS) |
+| Deploy | GitHub Pages via GitHub Actions (peaceiris/actions-gh-pages) |
 
 ---
 
 ## Funcionalidades
 
 ### Dashboard
-- KPIs ejecutivos: total de proyectos, tasa de completitud, tareas bloqueadas, equipo activo
-- Cards interactivos que navegan a la sección correspondiente
+- KPIs ejecutivos clickeables: proyectos totales, riesgos activos, capacidad del equipo, progreso general
+- Gráfico de barras SVG (progreso real vs estimado) — funciona en todos los tamaños de pantalla
+- Lista de riesgos críticos con etiquetas de desviación de tiempo/costo
+- Feed de actividad reciente del equipo
+- Botón de exportación rápida
 
 ### Proyectos
 - CRUD completo: crear, editar y eliminar proyectos
-- Estados: Backlog → Planificación → En desarrollo → En riesgo → En pausa → Completado
+- 6 estados visuales con selector tipo lista: Backlog · Planificación · En desarrollo · En riesgo · En pausa · Completado
 - Sliders de progreso real vs estimado
 - Filtros por estado y búsqueda por nombre/cliente
-- Métricas de resumen en tiempo real
+- Métricas de resumen en tiempo real (total, progreso prom., en riesgo, on track)
+- Navegación directa al detalle desde la tabla
 
-### Detalle de Proyecto (4 tabs)
-- **Overview**: descripción, barras de progreso, resumen de tareas, comentarios con fecha y hora exacta
-- **Tareas**: CRUD completo, asignación a miembros, estados y fechas límite
-- **Riesgos**: registro de riesgos con severidad (Alto/Medio/Bajo), impacto en tiempo y costo
-- **Equipo**: asignación/desasignación visual de personas al proyecto
+### Detalle de Proyecto — 4 tabs
+
+**Overview**
+- Descripción editable con link directo al editor
+- Barras de progreso real vs estimado
+- Resumen visual de tareas recientes con estado semafórico
+- Panel lateral de actividad y comentarios con **fecha y hora exacta**
+
+**Tareas**
+- CRUD completo con modal: título, grupo/fase, estado, asignado, fecha límite
+- Flujo de eliminación protegido:
+  1. Al tocar eliminar aparece modal de confirmación con 3 opciones
+  2. **Marcar como completada** — cambia estado directamente
+  3. **Mover a Pendiente (borrador)** — si la tarea no está en `todo`
+  4. **Eliminar permanentemente** — solo disponible si la tarea ya está en estado `Pendiente`
+- Toast de confirmación tras cada acción
+
+**Riesgos**
+- CRUD completo: título, descripción, severidad (Alto/Medio/Bajo como lista visual), impacto en tiempo y costo
+- Cards con color semafórico por severidad y fecha de registro
+
+**Equipo**
+- Grid visual de todas las personas del equipo
+- Asignar/desasignar con un toque — persiste en tabla `project_members`
+- Badge "Asignado" / "+ Asignar" con indicador visual inmediato
 
 ### Equipo
 - CRUD de personas: nombre, iniciales, rol, email, color de avatar
-- Estado Activo/Inactivo (soft delete — preserva integridad referencial)
-- Confirmación antes de cambiar estado + toast de confirmación
-- Tabla + tarjetas con toggle de inactivos
+- Estado Activo/Inactivo como lista visual en el modal de edición (soft delete — preserva integridad referencial)
+- Confirmación antes de cambiar estado + toast de resultado
+- Toggle para mostrar/ocultar personas inactivas
+- Tabla + tarjetas, toda la tarjeta es clickeable para editar
 
 ### Carga de Trabajo
-- Mapa de calor semanal por persona
-- Indicadores de utilización con alertas de sobrecarga
+- Mapa de calor semanal con navegación real (← →) entre semanas
+- Carga dinámica desde Supabase para cada semana seleccionada
+- Indicadores de utilización por persona con alertas de sobrecarga
+- Distribución de horas por proyecto con barras proporcionales correctas
 
 ### Reportes
-- KPIs ejecutivos con datos reales
-- Gráfico de barras: progreso real vs estimado por proyecto
-- Donut: distribución de estados de proyectos y tareas
-- Sparkline de actividad del equipo (7/14/30 días)
-- Carga del equipo por persona
+- 4 KPIs ejecutivos con datos reales de Supabase
+- Gráfico de barras SVG: progreso real vs estimado por proyecto
+- Donuts de distribución: estados de proyectos y tareas (responsive mobile)
+- Sparkline de actividad del equipo (selector 7/14/30 días)
+- Carga del equipo: proyectos y tareas por persona con alertas de bloqueo
+- Botón de actualización manual
 
 ### Notificaciones
 - Panel desplegable con actividad en tiempo real
-- Marca como leída individual o todas
-- Contador de no leídas persistido en localStorage
+- Contador de no leídas en el ícono (hasta 9+)
+- Marcar como leída individual o todas
+- Estado persistido en `localStorage`
+- En mobile: panel de ancho completo desde el topnav
+
+### Exportación PDF
+- Accesible desde: sidebar, bottom nav, Dashboard y pantalla de Proyectos
+- Selector de proyectos con semáforo y progreso visible antes de seleccionar
+- Toggle "Seleccionar todos" / "Quitar todos"
+
+**Tipos de reporte:**
+- **Vista global:** portada + semáforo de salud + tabla resumen + riesgos consolidados + próximos hitos (30 días)
+- **Reporte completo:** todo lo anterior + una página de detalle por proyecto (tareas, riesgos, equipo)
+
+**Perfiles de cliente (estilos guardados):**
+- Nombre del estilo y del cliente
+- 3 colores de marca con color picker nativo
+- Tipografía seleccionable (6 opciones)
+- Logo/sigla y pie de página personalizado
+- Toggles: portada ejecutiva, riesgos consolidados, próximos hitos
+- Persisten en `localStorage` — reutilizables entre sesiones
+- Crear, editar y eliminar perfiles
+
+**El PDF incluye:**
+- Portada ejecutiva con colores del cliente, salud del portafolio y autor
+- Indicador de salud global (score 0–100 con color semafórico)
+- Tabla resumen con semáforo, estado, progreso vs estimado, desviación, líder y riesgos altos
+- Riesgos consolidados ordenados por severidad
+- Próximos hitos (tareas que vencen en 30 días)
+- Detalle por proyecto: progreso, equipo, tareas y riesgos
+
+### Perfil y Personalización de Usuario
+Accesible desde el avatar en el topnav o en el fondo del sidebar:
+
+**Perfil:** nombre, cargo, email y color de avatar (persiste en `localStorage`)
+
+**6 temas visuales** (se aplican en tiempo real con CSS custom properties):
+| Tema | Descripción |
+|------|-------------|
+| Océano | Azul marino clásico (por defecto) |
+| Pizarra | Gris profesional con acento índigo |
+| Esmeralda | Verde corporativo |
+| Rosa | Moderno y vibrante |
+| Oscuro | Modo noche completo |
+| Violeta | Creativo con acento púrpura |
+
+**Ajustes:**
+- Compactar tablas (reduce padding para ver más contenido)
+- Sidebar abierto por defecto en desktop
+- Limpiar preferencias (restaura tema y datos locales)
+
+---
+
+## Rutas de la aplicación
+
+| Ruta | Pantalla |
+|------|---------|
+| `/leader_pro/` | Dashboard |
+| `/leader_pro/projects` | Cartera de proyectos |
+| `/leader_pro/projects/:id` | Detalle de proyecto (carga desde Supabase si se recarga) |
+| `/leader_pro/team` | Gestión de equipo |
+| `/leader_pro/workload` | Carga de trabajo |
+| `/leader_pro/reports` | Reportes y analytics |
+| `/leader_pro/settings` | Configuración (próximamente) |
+
+> **SPA routing en GitHub Pages:** al recargar cualquier ruta, GitHub Pages sirve `404.html` (copia de `index.html`). React Router toma el control y renderiza la pantalla correcta. El proyecto se recarga desde el ID en la URL sin perder el contexto.
 
 ---
 
@@ -82,28 +178,31 @@ Plataforma web de gestión de proyectos diseñada para líderes de área. Permit
 area-leader-pro/
 ├── src/
 │   ├── components/
-│   │   ├── Dashboard.jsx       # Vista ejecutiva con KPIs
-│   │   ├── Projects.jsx        # Cartera y tabla de proyectos
-│   │   ├── ProjectDetail.jsx   # Detalle: tareas, riesgos, equipo, comentarios
-│   │   ├── ProjectModal.jsx    # Modal crear/editar proyecto
-│   │   ├── Team.jsx            # Gestión de equipo con CRUD
-│   │   ├── Workload.jsx        # Carga de trabajo semanal
-│   │   ├── Reports.jsx         # Reportes y analytics
-│   │   ├── Notifications.jsx   # Panel de notificaciones
-│   │   └── UI.jsx              # Componentes compartidos (Avatar, StatusTag, etc.)
+│   │   ├── Dashboard.jsx        # KPIs, gráfico SVG, riesgos, actividad
+│   │   ├── Projects.jsx         # Cartera con filtros, tabla y exportación
+│   │   ├── ProjectDetail.jsx    # Tabs: overview, tareas, riesgos, equipo
+│   │   ├── ProjectModal.jsx     # Modal crear/editar proyecto con selector de estado
+│   │   ├── ExportModal.jsx      # Exportador PDF con perfiles de cliente
+│   │   ├── Team.jsx             # Gestión de equipo con soft delete
+│   │   ├── Workload.jsx         # Mapa de calor con navegación semanal real
+│   │   ├── Reports.jsx          # Reportes con gráficos SVG y donuts
+│   │   ├── Notifications.jsx    # Panel de notificaciones con conteo
+│   │   ├── UserPanel.jsx        # Perfil, temas y ajustes de usuario
+│   │   └── UI.jsx               # Componentes compartidos (Avatar, StatusTag, etc.)
 │   ├── lib/
-│   │   └── supabase.js         # Cliente Supabase + todas las queries/RPCs
-│   ├── App.jsx                 # Shell: layout, navegación, routing
-│   ├── index.css               # Estilos globales (design system completo)
-│   └── main.jsx                # Entry point React
+│   │   ├── supabase.js          # Cliente Supabase + todas las queries y RPCs
+│   │   └── clientStyles.js      # Gestión de perfiles de estilo para PDF
+│   ├── App.jsx                  # Shell con React Router, layout y navegación
+│   ├── index.css                # Design system completo (tokens, dark mode, responsive)
+│   └── main.jsx                 # Entry point React
 ├── supabase/
 │   └── migrations/
-│       └── 001_full_schema.sql # Schema completo (ver sección abajo)
+│       └── 001_full_schema.sql  # Schema completo para instalar desde cero
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          # CI/CD: build + deploy a GitHub Pages
-├── .env.example                # Template de variables de entorno
-├── vite.config.js              # Config Vite (base path para GitHub Pages)
+│       └── deploy.yml           # CI/CD: build + copy 404.html + deploy a GitHub Pages
+├── .env.example                 # Template de variables de entorno
+├── vite.config.js               # Config Vite (base: /leader_pro/)
 └── README.md
 ```
 
@@ -111,7 +210,7 @@ area-leader-pro/
 
 ## Instalación local
 
-### Requisitos previos
+### Requisitos
 - Node.js 18 o superior
 - npm 9 o superior
 - Cuenta en [Supabase](https://supabase.com) (plan gratuito funciona)
@@ -128,14 +227,15 @@ npm install
 
 # 3. Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus credenciales (ver sección de Supabase abajo)
+# Editar .env con tus credenciales de Supabase
 
 # 4. Aplicar el schema en Supabase
-# Ir al SQL Editor de tu proyecto y ejecutar supabase/migrations/001_full_schema.sql
+# Ir al SQL Editor de tu proyecto y ejecutar:
+# supabase/migrations/001_full_schema.sql
 
 # 5. Correr en modo desarrollo
 npm run dev
-# La app estará en http://localhost:5173
+# La app estará en http://localhost:5173/leader_pro/
 ```
 
 ---
@@ -145,50 +245,55 @@ npm run dev
 ### 1. Crear proyecto
 
 1. Ir a [supabase.com](https://supabase.com) → New project
-2. Elegir nombre, contraseña y región (recomendado: `us-east-1`)
-3. Esperar ~2 minutos a que el proyecto esté listo
+2. Elegir nombre, contraseña y región
+3. Esperar ~2 minutos
 
 ### 2. Obtener credenciales
 
-En el panel de Supabase: **Settings → API**
-
-- **Project URL**: `https://TU_ID.supabase.co`
-- **anon/public key**: la clave que empieza con `eyJ...`
+**Settings → API:**
+- **Project URL:** `https://TU_ID.supabase.co`
+- **anon/public key:** clave que empieza con `eyJ...`
 
 ### 3. Aplicar el schema
 
-En el panel de Supabase: **SQL Editor → New query**
+**SQL Editor → New query** → pegar y ejecutar `supabase/migrations/001_full_schema.sql`
 
-Pegar y ejecutar el contenido de `supabase/migrations/001_full_schema.sql`
+El schema crea automáticamente:
+- Schema `area_leader` con todas las tablas
+- Vistas públicas para PostgREST (`al_*`)
+- Funciones RPC para escritura (`SECURITY DEFINER`)
+- Políticas RLS
 
-> El schema crea el schema `area_leader` con todas las tablas, las vistas públicas para PostgREST, las funciones RPC y las políticas RLS.
+> **Nota sobre PostgREST:** por defecto solo expone el schema `public`. Por eso todas las lecturas usan vistas en `public` que apuntan a `area_leader`, y todas las escrituras usan funciones RPC también en `public`.
 
 ---
 
 ## Schema completo de base de datos
 
-El schema `area_leader` contiene las siguientes tablas:
-
-### Tablas
+### Tablas (schema `area_leader`)
 
 | Tabla | Descripción |
 |-------|-------------|
-| `team_members` | Personas del equipo con soft delete (campo `active`) |
-| `projects` | Proyectos con estado, progreso real/estimado y líder asignado |
-| `project_members` | Relación many-to-many entre proyectos y miembros |
-| `tasks` | Tareas de cada proyecto con asignación y estado |
-| `risks` | Riesgos registrados por proyecto con severidad e impacto |
-| `activity` | Feed de eventos: comentarios, cambios de estado, hitos |
-| `workload` | Horas asignadas por persona/día/proyecto |
+| `team_members` | Personas del equipo. Campo `active` para soft delete |
+| `projects` | Proyectos con estado, progreso real/estimado y líder |
+| `project_members` | Relación many-to-many proyectos ↔ miembros |
+| `tasks` | Tareas por proyecto con asignación y estado |
+| `risks` | Riesgos con severidad (high/medium/low) e impacto |
+| `activity` | Feed de eventos: comentarios, estados, hitos |
+| `workload` | Horas asignadas por persona/día/semana/proyecto |
 
-### Vistas públicas (PostgREST)
+### Estados válidos
 
-PostgREST solo expone el schema `public` por defecto. Para que el cliente JavaScript pueda leer los datos, se crean vistas en `public` que apuntan al schema `area_leader`:
+**Proyectos:** `backlog` · `planning` · `active` · `at-risk` · `on-hold` · `completed`
+
+**Tareas:** `todo` · `in-progress` · `review` · `blocked` · `completed`
+
+### Vistas públicas (`public`)
 
 | Vista | Descripción |
 |-------|-------------|
-| `al_team_members` | Miembros activos |
-| `al_team_members_all` | Todos los miembros (incluyendo inactivos) |
+| `al_team_members` | Miembros activos únicamente |
+| `al_team_members_all` | Todos los miembros (incluye inactivos) |
 | `al_projects` | Proyectos con datos del líder embebidos |
 | `al_tasks` | Tareas con datos del asignado |
 | `al_risks` / `al_risks_by_project` | Riesgos con nombre del proyecto |
@@ -196,42 +301,82 @@ PostgREST solo expone el schema `public` por defecto. Para que el cliente JavaSc
 | `al_workload` | Carga con datos de miembro y proyecto |
 | `al_project_members` | Miembros asignados a cada proyecto |
 
-> **Nota:** La sección "Proyectos activos" del sidebar muestra los proyectos con estado `active`, `at-risk` o `planning`, ordenados por última actualización. Se actualiza automáticamente al cargar la app.
+> La sección "Proyectos activos" del sidebar muestra proyectos con estado `active`, `at-risk` o `planning`, ordenados por última actualización. Se recarga automáticamente al iniciar la app.
 
-### Funciones RPC
-
-Todas las operaciones de escritura se hacen via RPC con `SECURITY DEFINER`:
+### Funciones RPC (`public`)
 
 | Función | Operación |
 |---------|-----------|
-| `al_upsert_member` | Crear/editar miembro |
-| `al_deactivate_member` / `al_activate_member` | Soft delete |
-| `al_upsert_project` | Crear/editar proyecto |
-| `al_delete_project` | Eliminar proyecto y dependencias en cascada |
-| `al_add_project_member` / `al_remove_project_member` | Asignación de equipo |
-| `al_upsert_task` / `al_delete_task` | CRUD de tareas |
-| `al_upsert_risk` / `al_delete_risk` | CRUD de riesgos |
-| `al_add_activity` | Registrar comentario/evento |
-| `al_report_summary` | KPIs del dashboard de reportes |
-| `al_report_progress` | Progreso vs estimación por proyecto |
-| `al_report_activity` | Actividad agrupada por día |
-| `al_report_team_load` | Carga de trabajo por miembro |
+| `al_upsert_member(...)` | Crear/editar miembro (incluye campo `active`) |
+| `al_deactivate_member(id)` | Soft delete |
+| `al_activate_member(id)` | Reactivar |
+| `al_upsert_project(...)` | Crear/editar proyecto |
+| `al_delete_project(id)` | Eliminar con cascada (activity, risks, tasks, workload) |
+| `al_add_project_member(project_id, member_id)` | Asignar persona al proyecto |
+| `al_remove_project_member(project_id, member_id)` | Desasignar |
+| `al_upsert_task(...)` | Crear/editar tarea |
+| `al_delete_task(id)` | Eliminar tarea |
+| `al_upsert_risk(...)` | Crear/editar riesgo |
+| `al_delete_risk(id)` | Eliminar riesgo |
+| `al_add_activity(...)` | Registrar comentario o evento |
+| `al_report_summary()` | KPIs para dashboard de reportes |
+| `al_report_progress()` | Progreso vs estimación por proyecto |
+| `al_report_activity(days)` | Actividad agrupada por día |
+| `al_report_team_load()` | Carga de trabajo por miembro |
 
 ---
 
 ## Variables de entorno
 
-Crear un archivo `.env` en la raíz del proyecto:
-
 ```env
+# .env
 VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-> **Importante:** el archivo `.env` está en `.gitignore` y nunca debe subirse al repositorio. Usar `.env.example` como referencia.
-
-Para producción (GitHub Pages), las variables se configuran como **Repository Secrets** en GitHub:
+El archivo `.env` está en `.gitignore`. Para producción, configurar como **Repository Secrets** en GitHub:
 `Settings → Secrets and variables → Actions → New repository secret`
+
+---
+
+## Personalización de usuario
+
+Todas las preferencias se guardan en `localStorage` bajo la clave `alp_user_prefs`:
+
+```json
+{
+  "name": "Francisco A.",
+  "role": "Area Leader",
+  "email": "francisco@empresa.cl",
+  "color": "#1e293b",
+  "themeId": "dark",
+  "compact": false,
+  "sidebarOpen": true
+}
+```
+
+Los perfiles de estilo para PDF se guardan bajo `alp_client_styles`.
+Las notificaciones leídas se guardan bajo `alp_read`.
+
+---
+
+## Exportación de reportes PDF
+
+El exportador genera un HTML completo y abre el diálogo de impresión del navegador:
+
+```
+Abrir modal → Seleccionar tipo → Elegir proyectos → Seleccionar estilo de cliente → Exportar PDF
+                                                                                          ↓
+                                                                          Ventana con HTML del reporte
+                                                                                          ↓
+                                                                          Diálogo de impresión del OS
+                                                                                          ↓
+                                                                              Guardar como PDF
+```
+
+**En mobile (iOS/Android):** Compartir → Imprimir → Guardar como PDF
+
+Los colores y fondos se imprimen correctamente gracias a `-webkit-print-color-adjust: exact`.
 
 ---
 
@@ -239,15 +384,15 @@ Para producción (GitHub Pages), las variables se configuran como **Repository S
 
 ### GitHub Pages (configuración actual)
 
-El proyecto está configurado para hacer deploy automático a GitHub Pages en cada push a `main`.
+Deploy automático en cada push a `main`. El workflow:
+1. Instala dependencias con `npm ci`
+2. Compila con Vite inyectando los secrets de Supabase
+3. Copia `dist/index.html` → `dist/404.html` (routing SPA)
+4. Despliega con `peaceiris/actions-gh-pages` al branch `gh-pages`
 
-**Prerequisitos:**
-1. Habilitar GitHub Pages: `Settings → Pages → Source: Deploy from branch → gh-pages`
-2. Agregar los secrets de Supabase en el repositorio
+**URL:** `https://angulodev.github.io/leader_pro/`
 
-**URL resultante:** `https://TU_USUARIO.github.io/NOMBRE_REPO/`
-
-> Si el nombre del repo cambia, actualizar `base` en `vite.config.js`.
+> Si cambias el nombre del repo, actualizar `base` en `vite.config.js` y `basename` en el `BrowserRouter` de `App.jsx`.
 
 ### Vercel / Netlify
 
@@ -263,82 +408,42 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
 
+Para Netlify agregar un archivo `public/_redirects`:
+```
+/* /index.html 200
+```
+
 ### Self-hosted (nginx)
 
-```bash
-npm run build
-# Copiar contenido de dist/ al directorio web
-# Configurar nginx para SPA: todas las rutas apuntan a index.html
+```nginx
+location / {
+  try_files $uri $uri/ /index.html;
+}
 ```
 
 ---
 
 ## CI/CD con GitHub Actions
 
-El archivo `.github/workflows/deploy.yml` automatiza el proceso completo:
-
-```
-Push a main
-    ↓
-Checkout código
-    ↓
-Setup Node.js 20
-    ↓
-npm ci (install limpio)
-    ↓
-npm run build (con secrets de Supabase)
-    ↓
-Push a rama gh-pages
-    ↓
-GitHub Pages sirve el sitio
+```yaml
+# .github/workflows/deploy.yml
+# Push a main → build → copy 404.html → deploy a gh-pages
 ```
 
-**El deploy tarda aproximadamente 30–40 segundos desde el push hasta que el sitio se actualiza.**
+El deploy tarda aproximadamente **30–45 segundos** desde el push hasta que el sitio se actualiza.
 
 ---
 
 ## Desarrollo
 
 ```bash
-# Modo desarrollo con hot reload
-npm run dev
-
-# Build de producción
-npm run build
-
-# Preview del build local
-npm run preview
+npm run dev      # Servidor de desarrollo con HMR
+npm run build    # Build de producción
+npm run preview  # Preview del build local
 ```
-
----
-
-## Personalización de usuario
-
-Cada usuario puede personalizar su experiencia desde el panel de perfil (ícono de avatar en el topnav):
-
-### Perfil
-- Nombre mostrado, cargo y email
-- Color de avatar
-
-### Temas (6 disponibles)
-| Tema | Descripción |
-|------|-------------|
-| Océano | Azul marino clásico (por defecto) |
-| Pizarra | Gris profesional con acento índigo |
-| Esmeralda | Verde corporativo |
-| Rosa | Moderno y vibrante |
-| Oscuro | Modo noche completo |
-| Violeta | Creativo con acento púrpura |
-
-El tema se aplica en tiempo real y se persiste en `localStorage`.
-
-### Ajustes
-- **Compactar tablas**: reduce padding para ver más contenido
-- **Sidebar por defecto**: controla si el panel lateral arranca abierto
-- **Limpiar preferencias**: restaura todo al estado original
 
 ---
 
 ## Licencia
 
-MIT — Angulodev · Francisco Angulo
+MIT — Angulodev · Francisco Angulo · [github.com/angulodev/leader_pro](https://github.com/angulodev/leader_pro)
