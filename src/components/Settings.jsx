@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, getUserPrefs, saveUserPrefs, getPlanStatus, requestUpgrade, cancelPlan, undoCancelPlan } from '../lib/supabase'
-import { Avatar } from './UI'
+import { getUserPrefs, saveUserPrefs, getPlanStatus, requestUpgrade, cancelPlan, undoCancelPlan } from '../lib/supabase'
 import { THEMES, applyTheme } from '../lib/theme'
 
 function formatCLP(value) {
@@ -12,16 +11,10 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-const AVATAR_COLORS = ['#1e293b','#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899']
-
 export default function Settings() {
-  const [tab, setTab] = useState('profile')
+  const [tab, setTab] = useState('splash')
   const [prefs, setPrefs] = useState(getUserPrefs)
   const [form, setForm] = useState({
-    name:  prefs.name  || 'Francisco A.',
-    role:  prefs.role  || 'Area Leader',
-    email: prefs.email || '',
-    color: prefs.color || '#1e293b',
     splashTitle:    prefs.splashTitle    || '',
     splashSubtitle: prefs.splashSubtitle || '',
     splashLogo:     prefs.splashLogo     || '',
@@ -55,7 +48,7 @@ export default function Settings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo debe correr al montar
   }, [])
 
-  function handleSaveProfile() {
+  function handleSaveSplash() {
     saveUserPrefs(form)
     setPrefs(p => ({ ...p, ...form }))
     setSaved(true)
@@ -107,7 +100,6 @@ export default function Settings() {
   }
 
   const currentTheme = THEMES.find(t => t.id === (prefs.themeId || 'default')) || THEMES[0]
-  const initials = form.name.trim().split(' ').slice(0,2).map(w => w[0]?.toUpperCase() || '').join('')
 
   return (
     <div className="screen-content">
@@ -118,10 +110,10 @@ export default function Settings() {
       <div className="card card-flush">
         <div className="tabs">
           {[
-            { id: 'profile', label: 'Perfil'  },
-            { id: 'theme',   label: 'Tema'    },
-            { id: 'plan',    label: 'Plan'    },
-            { id: 'prefs',   label: 'Ajustes' },
+            { id: 'splash', label: 'Pantalla de presentación' },
+            { id: 'theme',  label: 'Tema'    },
+            { id: 'plan',   label: 'Plan'    },
+            { id: 'prefs',  label: 'Ajustes' },
           ].map(t => (
             <button key={t.id} className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
               {t.label}
@@ -131,47 +123,12 @@ export default function Settings() {
 
         <div className="tab-body">
 
-          {/* ── PROFILE ── */}
-          {tab === 'profile' && (
+          {/* ── SPLASH ── */}
+          {tab === 'splash' && (
             <div className="settings-section">
-              <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
-                <Avatar initials={initials} color={form.color} size={56} />
-                <div>
-                  <div style={{ fontWeight:700, fontSize:16 }}>{form.name}</div>
-                  <div style={{ fontSize:13, color:'var(--text-muted)' }}>{form.role}</div>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Nombre mostrado</label>
-                <input className="form-input" value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Tu nombre" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Cargo / Rol</label>
-                <input className="form-input" value={form.role}
-                  onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                  placeholder="ej. Area Leader" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Email</label>
-                <input className="form-input" type="email" value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="tu@email.com" />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Color de avatar</label>
-                <div className="color-picker">
-                  {AVATAR_COLORS.map(c => (
-                    <button key={c} className={`color-swatch ${form.color === c ? 'selected' : ''}`}
-                      style={{ background: c }}
-                      onClick={() => setForm(f => ({ ...f, color: c }))} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="user-section-divider">Pantalla de presentación</div>
+              <p style={{ fontSize:12, color:'var(--text-muted)', marginBottom:4 }}>
+                Personaliza la pantalla de carga inicial de la app (título, subtítulo y logo).
+              </p>
 
               <div className="form-group">
                 <label className="form-label">Título principal</label>
@@ -199,10 +156,10 @@ export default function Settings() {
               </div>
 
               <button className="btn btn-primary" style={{ width:'100%', justifyContent:'center' }}
-                onClick={handleSaveProfile}>
+                onClick={handleSaveSplash}>
                 {saved
                   ? <><span className="mat-icon">check_circle</span> Guardado</>
-                  : <><span className="mat-icon">save</span> Guardar perfil</>}
+                  : <><span className="mat-icon">save</span> Guardar</>}
               </button>
             </div>
           )}
@@ -373,7 +330,7 @@ export default function Settings() {
                     localStorage.removeItem('alp_user_prefs')
                     localStorage.removeItem('alp_read')
                     setPrefs({})
-                    setForm({ name:'Francisco A.', role:'Area Leader', email:'', color:'#1e293b', splashTitle:'', splashSubtitle:'', splashLogo:'' })
+                    setForm({ splashTitle:'', splashSubtitle:'', splashLogo:'' })
                     applyTheme(THEMES[0])
                   }}>
                   <span className="mat-icon">restart_alt</span>
@@ -385,17 +342,6 @@ export default function Settings() {
                 <strong>Area Leader Pro</strong> v1.0.0<br/>
                 React 18 + Vite + Supabase
               </div>
-
-              <div className="pref-divider" />
-
-              <button
-                className="btn btn-danger"
-                style={{ width:'100%', justifyContent:'center' }}
-                onClick={async () => { await supabase.auth.signOut() }}
-              >
-                <span className="mat-icon">logout</span>
-                Cerrar sesión
-              </button>
             </div>
           )}
         </div>

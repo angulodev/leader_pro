@@ -8,6 +8,7 @@ import Team from './components/Team'
 import Reports from './components/Reports'
 import Notifications from './components/Notifications'
 import Settings from './components/Settings'
+import ProfileDropdown from './components/ProfileDropdown'
 import { applyTheme, THEMES } from './lib/theme'
 import ExportModal from './components/ExportModal'
 import { getProjects, getActivity, getUserPrefs, supabase } from './lib/supabase'
@@ -36,11 +37,12 @@ function AppInner() {
     return prefs.sidebarPinned !== false && window.innerWidth > 640
   })
   const [notifOpen,      setNotifOpen]      = useState(false)
+  const [profileOpen,    setProfileOpen]    = useState(false)
   const [exportOpen,     setExportOpen]     = useState(false)
   const [projectCount,   setProjectCount]   = useState(null)
   const [activeProjects, setActiveProjects] = useState([])
   const [unreadCount,    setUnreadCount]    = useState(0)
-  const [userPrefs] = useState(getUserPrefs)
+  const [userPrefs, setUserPrefs] = useState(getUserPrefs)
 
   // Auth listener
   useEffect(() => {
@@ -165,17 +167,25 @@ function AppInner() {
             </button>
             {notifOpen && <Notifications onClose={() => setNotifOpen(false)} />}
           </div>
-          <div
-            className="avatar-circle topnav-avatar"
-            style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
-            title="Configuración"
+          <button className="icon-btn" title="Configuración"
             onClick={() => { navigate('/settings'); if (!sidePinned) setSideOpen(false) }}>
-            {(userPrefs.name || 'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
-          </div>
-          <button className="icon-btn icon-btn-danger" title="Cerrar sesión"
-            onClick={() => supabase.auth.signOut()}>
-            <span className="mat-icon">logout</span>
+            <span className="mat-icon">settings</span>
           </button>
+          <div style={{ position: 'relative' }}>
+            <div
+              className="avatar-circle topnav-avatar"
+              style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
+              title="Mi perfil"
+              onClick={() => setProfileOpen(o => !o)}>
+              {(userPrefs.name || 'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
+            </div>
+            {profileOpen && (
+              <ProfileDropdown
+                onClose={() => setProfileOpen(false)}
+                onSaved={updated => setUserPrefs(p => ({ ...p, ...updated }))}
+              />
+            )}
+          </div>
         </div>
       </header>
 
