@@ -63,6 +63,10 @@ function BarChartSVG({ data }) {
 
 export default function Dashboard({ onNavigate, onExport }) {
   const prefs = getUserPrefs()
+  const [showSplash, setShowSplash] = useState(() => {
+    const seen = sessionStorage.getItem('alp_splash_seen')
+    return !seen
+  })
   const [kpi, setKpi] = useState(null)
   const [risks, setRisks] = useState([])
   const [activity, setActivity] = useState([])

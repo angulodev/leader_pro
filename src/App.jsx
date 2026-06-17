@@ -103,11 +103,7 @@ function AppInner() {
     </div>
   )
 
-  if (!session) return (
-    <BrowserRouter basename="/leader_pro">
-      <Login />
-    </BrowserRouter>
-  )
+  if (!session) return <Login />
 
   return (
     <div className="app">
