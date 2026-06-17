@@ -221,6 +221,7 @@ export async function createTask(task) {
     p_group_name:  task.group_name || null,
     p_status:      task.status || 'planning',
     p_due_date:    task.due_date || null,
+    p_start_date:  task.start_date || null,
   })
   if (error) throw error
   return data

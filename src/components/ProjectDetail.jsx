@@ -7,6 +7,7 @@ import {
 } from '../lib/supabase'
 import { StatusTag, Avatar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
+import ProjectPlanner from './ProjectPlanner'
 
 
 const RISK_STATUS = {
@@ -37,7 +38,7 @@ function formatDateTime(iso) {
   return rel ? `${rel} · ${date} ${time}` : `${date} · ${time}`
 }
 
-const EMPTY_TASK = { title: '', group_name: '', status: 'todo', assigned_to: '', due_date: '' }
+const EMPTY_TASK = { title: '', group_name: '', status: 'todo', assigned_to: '', start_date: '', due_date: '' }
 
 export default function ProjectDetail({ project: initialProject, onBack, onProjectUpdated }) {
   const [project, setProject]       = useState(initialProject)
@@ -131,6 +132,7 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
       group_name:  t.group_name || '',
       status:      t.status,
       assigned_to: t.assigned_to || '',
+      start_date:  t.start_date || '',
       due_date:    t.due_date || '',
     })
     setTaskModal(t)
@@ -300,9 +302,9 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
       {/* ── Tabs ── */}
       <div className="card card-flush">
         <div className="tabs">
-          {['overview','tasks','risks','team'].map(t => (
+          {['overview','tasks','planner','risks','team'].map(t => (
             <button key={t} className={`tab-btn ${tab===t?'active':''}`} onClick={()=>setTab(t)}>
-              {t==='overview'?'Overview':t==='tasks'?`Tareas (${tasks.length})`:t==='risks'?`Riesgos${risks.length>0?' ('+risks.length+')':''}`:'Equipo'}
+              {t==='overview'?'Overview':t==='tasks'?`Tareas (${tasks.length})`:t==='planner'?'Planner':t==='risks'?`Riesgos${risks.length>0?' ('+risks.length+')':''}`:'Equipo'}
             </button>
           ))}
         </div>
@@ -486,6 +488,10 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
             )
           })()}
 
+          {/* ════ PLANNER ════ */}
+          {tab === 'planner' && (
+            <ProjectPlanner project={project} tasks={tasks} />
+          )}
 
           {/* ════ RISKS ════ */}
           {tab === 'risks' && (
@@ -650,6 +656,13 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
                     <option value="">Sin asignar</option>
                     {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Fecha de inicio</label>
+                  <input className="form-input" type="date" value={taskForm.start_date}
+                    onChange={e=>setTaskForm(f=>({...f,start_date:e.target.value}))}/>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Fecha límite</label>
