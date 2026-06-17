@@ -7,7 +7,8 @@ import Workload from './components/Workload'
 import Team from './components/Team'
 import Reports from './components/Reports'
 import Notifications from './components/Notifications'
-import UserPanel, { applyTheme, THEMES } from './components/UserPanel'
+import UserPanel from './components/UserPanel'
+import { applyTheme, THEMES } from './lib/theme'
 import ExportModal from './components/ExportModal'
 import { getProjects, getActivity, getUserPrefs, supabase } from './lib/supabase'
 import Login from './components/Login'
@@ -40,7 +41,7 @@ function AppInner() {
   const [projectCount,   setProjectCount]   = useState(null)
   const [activeProjects, setActiveProjects] = useState([])
   const [unreadCount,    setUnreadCount]    = useState(0)
-  const [userPrefs,      setUserPrefs]      = useState(getUserPrefs)
+  const [userPrefs] = useState(getUserPrefs)
 
   // Auth listener
   useEffect(() => {
@@ -121,7 +122,9 @@ function AppInner() {
                 const k = 'alp_user_prefs'
                 const cur = JSON.parse(localStorage.getItem(k) || '{}')
                 localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: false }))
-              } catch(e) {}
+              } catch {
+                // localStorage puede no estar disponible (modo privado, cuotas, etc.)
+              }
             } else if (sideOpen) {
               // Click when open (not pinned) = pin it
               setSidePinned(true)
@@ -129,7 +132,9 @@ function AppInner() {
                 const k = 'alp_user_prefs'
                 const cur = JSON.parse(localStorage.getItem(k) || '{}')
                 localStorage.setItem(k, JSON.stringify({ ...cur, sidebarPinned: true }))
-              } catch(e) {}
+              } catch {
+                // localStorage puede no estar disponible (modo privado, cuotas, etc.)
+              }
             } else {
               // Click when closed = open it
               setSideOpen(true)

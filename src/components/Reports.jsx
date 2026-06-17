@@ -148,7 +148,6 @@ function Stat({ label, value, sub, color = 'var(--accent)', icon }) {
 // ── Deviation bar ────────────────────────────────
 function DeviationBar({ actual, estimated, name }) {
   const dev = actual - estimated
-  const max = 100
   return (
     <div className="dev-row">
       <div className="dev-name" title={name}>{name}</div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getDashboardKPIs, getRisks, getActivity, getProjects, getUserPrefs } from '../lib/supabase'
-import { KPICard, StatusTag, Skeleton } from './UI'
+import { KPICard, Skeleton } from './UI'
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000

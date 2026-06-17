@@ -91,14 +91,14 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
   useEffect(() => { setProject(initialProject) }, [initialProject])
   useEffect(() => { loadAll() }, [project?.id])
 
-  if (!project) return null
-
   // Auto-clear toast
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 3000)
     return () => clearTimeout(t)
   }, [toast])
+
+  if (!project) return null
 
   // ── Comment ──
   const handleComment = async () => {
@@ -596,7 +596,7 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
         <ProjectModal
           project={project}
           onClose={() => setShowEditProject(false)}
-          onSaved={(updated) => {
+          onSaved={() => {
             setShowEditProject(false)
             // Reload project data
             if (onProjectUpdated) onProjectUpdated()

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Avatar } from './UI'
 
 const THEMES = [
@@ -23,14 +23,6 @@ function applyTheme(theme) {
   // Derive accent-bg from accent
   root.style.setProperty('--accent-bg', theme.accent + '18')
   localStorage.setItem('alp_theme', theme.id)
-}
-
-export function initTheme() {
-  const saved = localStorage.getItem('alp_theme')
-  if (saved) {
-    const theme = THEMES.find(t => t.id === saved)
-    if (theme) applyTheme(theme)
-  }
 }
 
 const STORAGE_KEY = 'alp_user_profile'

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { getProjects, getTasksByProject, getRisksByProject, getProjectMembers } from '../lib/supabase'
 import { Skeleton } from './UI'
 import { getClientStyles, saveClientStyle, deleteClientStyle, generateStyleId, DEFAULT_STYLE } from '../lib/clientStyles'
