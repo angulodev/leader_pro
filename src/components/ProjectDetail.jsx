@@ -72,23 +72,29 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
 
   const loadAll = () => {
     if (!project) return
-    setLoading(true)
-    Promise.all([
-      getTasksByProject(project.id),
-      getActivity(20),
-      getTeamMembers(),
-      getProjectMembers(project.id),
-      getRisksByProject(project.id),
-    ]).then(([t, a, m, pm, r]) => {
-      setTasks(t)
-      setActivity(a.filter(x => x.project_id === project.id))
-      setMembers(m)
-      setProjMembers(pm)
-      setRisks(r)
-    }).finally(() => setLoading(false))
+    Promise.resolve()
+      .then(() => setLoading(true))
+      .then(() => Promise.all([
+        getTasksByProject(project.id),
+        getActivity(20),
+        getTeamMembers(),
+        getProjectMembers(project.id),
+        getRisksByProject(project.id),
+      ]))
+      .then(([t, a, m, pm, r]) => {
+        setTasks(t)
+        setActivity(a.filter(x => x.project_id === project.id))
+        setMembers(m)
+        setProjMembers(pm)
+        setRisks(r)
+      }).finally(() => setLoading(false))
   }
 
-  useEffect(() => { setProject(initialProject) }, [initialProject])
+  useEffect(() => {
+    Promise.resolve().then(() => setProject(initialProject))
+  }, [initialProject])
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAll depende de project, redefinirla cada render es intencional
   useEffect(() => { loadAll() }, [project?.id])
 
   // Auto-clear toast

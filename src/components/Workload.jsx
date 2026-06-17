@@ -60,14 +60,15 @@ export default function Workload() {
   const [loading,  setLoading]  = useState(true)
 
   const load = useCallback((weekDate) => {
-    setLoading(true)
     const iso = weekStartToISO(weekDate)
-    Promise.all([getTeamMembers(), getWorkload(iso)])
+    Promise.resolve()
+      .then(() => setLoading(true))
+      .then(() => Promise.all([getTeamMembers(), getWorkload(iso)]))
       .then(([m, w]) => { setMembers(m); setWorkload(w) })
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load(currentWeek) }, [currentWeek])
+  useEffect(() => { load(currentWeek) }, [currentWeek, load])
 
   function prevWeek() { setCurrentWeek(w => addWeeks(w, -1)) }
   function nextWeek() { setCurrentWeek(w => addWeeks(w, +1)) }

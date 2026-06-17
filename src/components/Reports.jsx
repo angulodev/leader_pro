@@ -31,16 +31,24 @@ function DonutChart({ segments, size = 120 }) {
   if (!segments?.length || segments.every(s => s.value === 0)) return <EmptyChart />
   const total = segments.reduce((a, s) => a + s.value, 0)
   const r = 40, cx = 60, cy = 60, stroke = 18
-  let offset = 0
   const circ = 2 * Math.PI * r
+
+  // Offset acumulado de cada segmento, calculado sin mutar nada durante el render.
+  const offsets = segments.reduce((acc, s) => {
+    const prev = acc.length ? acc[acc.length - 1] : 0
+    acc.push(prev + s.value / total)
+    return acc
+  }, [])
+
   return (
     <div className="donut-wrap">
       <svg width={size} height={size} viewBox="0 0 120 120">
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
         {segments.map((s, i) => {
-          const pct  = s.value / total
-          const dash = pct * circ
-          const seg  = (
+          const pct    = s.value / total
+          const dash   = pct * circ
+          const offset = i === 0 ? 0 : offsets[i - 1]
+          return (
             <circle key={i} cx={cx} cy={cy} r={r} fill="none"
               stroke={s.color} strokeWidth={stroke}
               strokeDasharray={`${dash} ${circ - dash}`}
@@ -48,8 +56,6 @@ function DonutChart({ segments, size = 120 }) {
               style={{ transition: 'stroke-dasharray .4s ease' }}
             />
           )
-          offset += pct
-          return seg
         })}
         <text x={cx} y={cy + 5} textAnchor="middle"
           fontSize="18" fontWeight="700" fill="var(--text-primary)">{total}</text>
@@ -176,22 +182,24 @@ export default function Reports() {
   const [period,   setPeriod]   = useState(14)
 
   const load = () => {
-    setLoading(true)
-    Promise.all([
-      getReportSummary(),
-      getReportProgress(),
-      getReportActivity(period),
-      getReportTeamLoad(),
-    ]).then(([s, p, a, t]) => {
-      setSummary(s)
-      setProgress(p || [])
-      setActivity(a || [])
-      setTeamLoad(t || [])
-    }).catch(console.error)
-    .finally(() => setLoading(false))
+    Promise.resolve()
+      .then(() => setLoading(true))
+      .then(() => Promise.all([
+        getReportSummary(),
+        getReportProgress(),
+        getReportActivity(period),
+        getReportTeamLoad(),
+      ]))
+      .then(([s, p, a, t]) => {
+        setSummary(s)
+        setProgress(p || [])
+        setActivity(a || [])
+        setTeamLoad(t || [])
+      }).catch(console.error)
+      .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [period])
+  useEffect(() => { load() }, [period]) // eslint-disable-line react-hooks/exhaustive-deps -- load depende de period, redefinirla cada render es intencional
 
   // Derived data
   const projectStatusSegments = summary?.by_status

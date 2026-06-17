@@ -65,7 +65,10 @@ export default function Team() {
     setLoading(true)
     getAllMembers().then(setMembers).catch(console.error).finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    getAllMembers().then(setMembers).catch(console.error).finally(() => setLoading(false))
+  }, [])
 
   const active   = members.filter(m => m.active !== false)
   const inactive = members.filter(m => m.active === false)

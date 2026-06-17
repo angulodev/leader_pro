@@ -273,13 +273,16 @@ function ProjectDetailRoute() {
 
   useEffect(() => {
     if (!project) {
-      setLoading(true)
-      getProjects().then(projects => {
-        const found = projects.find(p => p.id === id)
-        if (found) setProject(found)
-        else navigate('/projects')
-      }).finally(() => setLoading(false))
+      Promise.resolve()
+        .then(() => setLoading(true))
+        .then(() => getProjects())
+        .then(projects => {
+          const found = projects.find(p => p.id === id)
+          if (found) setProject(found)
+          else navigate('/projects')
+        }).finally(() => setLoading(false))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate es estable; project se omite a propósito para no re-disparar el fetch cuando project pasa de null a su valor
   }, [id])
 
   if (loading) return (

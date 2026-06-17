@@ -19,7 +19,10 @@ export default function Projects({ onSelectProject }) {
     setLoading(true)
     getProjects().then(setProjects).finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    getProjects().then(setProjects).finally(() => setLoading(false))
+  }, [])
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase()
