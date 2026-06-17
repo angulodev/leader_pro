@@ -94,6 +94,18 @@ export async function requestUpgrade(planId) {
   return data
 }
 
+export async function cancelPlan() {
+  const { data, error } = await supabase.rpc('al_cancel_plan')
+  if (error) throw error
+  return data
+}
+
+export async function undoCancelPlan() {
+  const { data, error } = await supabase.rpc('al_undo_cancel_plan')
+  if (error) throw error
+  return data
+}
+
 export async function deleteProject(id) {
   const { error } = await supabase.rpc('al_delete_project', { p_id: id })
   if (error) throw error

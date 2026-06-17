@@ -530,6 +530,7 @@ tbody tr:last-child td { border-bottom: none; }
 .tab-btn:hover { color: var(--text-primary); }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-body { padding: 16px; }
+.settings-section { display: flex; flex-direction: column; gap: 12px; }
 
 .project-layout { display: grid; grid-template-columns: 1fr 260px; gap: 20px; }
 .comment-row { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; }

@@ -7,7 +7,7 @@ import Workload from './components/Workload'
 import Team from './components/Team'
 import Reports from './components/Reports'
 import Notifications from './components/Notifications'
-import UserPanel from './components/UserPanel'
+import Settings from './components/Settings'
 import { applyTheme, THEMES } from './lib/theme'
 import ExportModal from './components/ExportModal'
 import { getProjects, getActivity, getUserPrefs, supabase } from './lib/supabase'
@@ -36,7 +36,6 @@ function AppInner() {
     return prefs.sidebarPinned !== false && window.innerWidth > 640
   })
   const [notifOpen,      setNotifOpen]      = useState(false)
-  const [userPanelOpen,  setUserPanelOpen]  = useState(false)
   const [exportOpen,     setExportOpen]     = useState(false)
   const [projectCount,   setProjectCount]   = useState(null)
   const [activeProjects, setActiveProjects] = useState([])
@@ -160,19 +159,18 @@ function AppInner() {
         <div className="topnav-actions">
           <div style={{ position: 'relative' }}>
             <button className="icon-btn notif-btn"
-              onClick={() => { setNotifOpen(o => !o); setUserPanelOpen(false) }}>
+              onClick={() => setNotifOpen(o => !o)}>
               <span className="mat-icon">{notifOpen ? 'notifications' : 'notifications_none'}</span>
               {unreadCount > 0 && <span className="notif-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </button>
             {notifOpen && <Notifications onClose={() => setNotifOpen(false)} />}
           </div>
-          <div style={{ position: 'relative' }}>
-            <div className="avatar-circle topnav-avatar"
-              style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
-              onClick={() => { setUserPanelOpen(o => !o); setNotifOpen(false) }}>
-              {(userPrefs.name || 'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
-            </div>
-            {userPanelOpen && <UserPanel onClose={() => setUserPanelOpen(false)} />}
+          <div
+            className="avatar-circle topnav-avatar"
+            style={{ background: userPrefs.color || '#1e293b', fontSize: 12, cursor: 'pointer' }}
+            title="Configuración"
+            onClick={() => { navigate('/settings'); if (!sidePinned) setSideOpen(false) }}>
+            {(userPrefs.name || 'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
           </div>
         </div>
       </header>
@@ -232,15 +230,7 @@ function AppInner() {
             <Route path="/team"       element={<Team />} />
             <Route path="/workload"   element={<Workload />} />
             <Route path="/reports"    element={<Reports />} />
-            <Route path="/settings"   element={
-              <div className="screen-content">
-                <div className="page-header"><h1 className="page-title">Configuración</h1></div>
-                <div className="card" style={{textAlign:'center',padding:48,color:'var(--text-muted)'}}>
-                  <span className="mat-icon" style={{fontSize:40,display:'block',marginBottom:12}}>settings</span>
-                  Módulo disponible próximamente
-                </div>
-              </div>
-            } />
+            <Route path="/settings"   element={<Settings />} />
             <Route path="*" element={<Dashboard onNavigate={p=>navigate(p)} onExport={() => setExportOpen(true)} />} />
           </Routes>
         </main>
