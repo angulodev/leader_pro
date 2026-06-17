@@ -64,6 +64,115 @@ function upcomingMilestones(detailData, projects) {
   return items.sort((a,b) => new Date(a.due_date) - new Date(b.due_date)).slice(0, 10)
 }
 
+// ── Planner ejecutivo (Gantt + cronología) para el detalle de proyecto ──
+function parsePlannerDate(d) {
+  if (!d) return null
+  const dt = new Date(d + 'T00:00:00')
+  return isNaN(dt) ? null : dt
+}
+function addPlannerDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r }
+
+function buildPlannerHTML(project, tasks) {
+  const tasksWithDates = tasks.filter(t => t.start_date || t.due_date)
+  if (!project.start_date && !project.due_date && tasksWithDates.length === 0) return ''
+
+  const allStarts = [project.start_date, ...tasksWithDates.map(t => t.start_date || t.due_date)]
+    .map(parsePlannerDate).filter(Boolean)
+  const allEnds = [project.due_date, ...tasksWithDates.map(t => t.due_date || t.start_date)]
+    .map(parsePlannerDate).filter(Boolean)
+  if (!allStarts.length || !allEnds.length) return ''
+
+  let rangeStart = new Date(Math.min(...allStarts))
+  let rangeEnd   = new Date(Math.max(...allEnds))
+  if (rangeEnd <= rangeStart) rangeEnd = addPlannerDays(rangeStart, 7)
+  rangeStart = addPlannerDays(rangeStart, -2)
+  rangeEnd   = addPlannerDays(rangeEnd, 2)
+  const totalMs = rangeEnd - rangeStart
+  const pct = d => Math.max(0, Math.min(100, ((d - rangeStart) / totalMs) * 100))
+
+  // Marcas mensuales (suficiente detalle para una página impresa)
+  const ticks = []
+  let cur = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1)
+  while (cur <= rangeEnd) {
+    ticks.push(new Date(cur))
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1)
+  }
+
+  const groups = {}
+  for (const t of tasksWithDates) {
+    const key = t.group_name?.trim() || 'Sin fase'
+    if (!groups[key]) groups[key] = []
+    groups[key].push(t)
+  }
+
+  const ganttRows = Object.entries(groups).map(([group, items]) => `
+    <div class="gantt-phase">${group}</div>
+    ${items.map(t => {
+      const start = parsePlannerDate(t.start_date || t.due_date)
+      const end   = parsePlannerDate(t.due_date || t.start_date)
+      const left  = pct(start)
+      const width = Math.max(pct(end) - left, 1)
+      const tc = TASK_S[t.status] || TASK_S.todo
+      return `
+        <div class="gantt-row">
+          <div class="gantt-label">${t.title}</div>
+          <div class="gantt-track">
+            <div class="gantt-bar" style="left:${left}%;width:${width}%;background:${tc.color}"></div>
+          </div>
+        </div>`
+    }).join('')}
+  `).join('')
+
+  const ganttBlock = `
+    <div class="gantt-wrap">
+      <div class="gantt-row gantt-project-row">
+        <div class="gantt-label"><strong>Proyecto</strong></div>
+        <div class="gantt-track">
+          ${project.start_date && project.due_date ? `
+            <div class="gantt-bar gantt-bar-project" style="left:${pct(parsePlannerDate(project.start_date))}%;width:${Math.max(pct(parsePlannerDate(project.due_date))-pct(parsePlannerDate(project.start_date)),1)}%"></div>
+          ` : ''}
+        </div>
+      </div>
+      <div class="gantt-row gantt-grid-row">
+        <div class="gantt-label"></div>
+        <div class="gantt-track gantt-track-grid">
+          ${ticks.map(m => `<div class="gantt-tick" style="left:${pct(m)}%">${m.toLocaleDateString('es-CL',{month:'short',year:'2-digit'})}</div>`).join('')}
+        </div>
+      </div>
+      ${ganttRows}
+    </div>
+  `
+
+  // Cronología: todos los hitos ordenados por fecha
+  const events = []
+  if (project.start_date) events.push({ date: parsePlannerDate(project.start_date), label: 'Inicio del proyecto', kind: 'project' })
+  for (const t of tasksWithDates) {
+    if (t.start_date) events.push({ date: parsePlannerDate(t.start_date), label: `Inicio: ${t.title}`, kind: 'task', color: (TASK_S[t.status]||TASK_S.todo).color })
+    if (t.due_date)   events.push({ date: parsePlannerDate(t.due_date),   label: `Entrega: ${t.title}`, kind: 'task', color: (TASK_S[t.status]||TASK_S.todo).color })
+  }
+  if (project.due_date) events.push({ date: parsePlannerDate(project.due_date), label: 'Entrega del proyecto', kind: 'project' })
+  events.sort((a, b) => a.date - b.date)
+
+  const timelineBlock = events.length ? `
+    <h3 style="margin-top:18px">Cronología</h3>
+    <div class="exec-timeline">
+      ${events.map(e => `
+        <div class="exec-timeline-item">
+          <div class="exec-timeline-dot" style="background:${e.kind==='project'?'#1e293b':(e.color||'#3b82f6')}"></div>
+          <div class="exec-timeline-date">${fmtShort(e.date.toISOString())}</div>
+          <div class="exec-timeline-label">${e.label}</div>
+        </div>
+      `).join('')}
+    </div>
+  ` : ''
+
+  return `
+    <h3 style="margin-top:18px">Línea de Tiempo</h3>
+    ${ganttBlock}
+    ${timelineBlock}
+  `
+}
+
 // ══════════════════════════════════════════════════
 // HTML REPORT BUILDER
 // ══════════════════════════════════════════════════
@@ -158,6 +267,23 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
     .proj-banner-num{font-size:10px;opacity:.5;text-transform:uppercase;letter-spacing:1px;font-weight:600}
     .proj-banner-title{font-size:18px;font-weight:800;letter-spacing:-.3px;flex:1;margin:0 16px}
     .proj-banner-status{font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;white-space:nowrap}
+    /* Gantt / planner ejecutivo */
+    .gantt-wrap{margin-bottom:14px}
+    .gantt-row{display:flex;align-items:center;gap:8px;min-height:20px;margin-bottom:2px}
+    .gantt-label{width:130px;flex-shrink:0;font-size:9px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gantt-track{position:relative;flex:1;height:12px;background:#f1f5f9;border-radius:3px}
+    .gantt-track-grid{background:none;height:14px}
+    .gantt-bar{position:absolute;top:1px;height:10px;border-radius:3px;background:${style.accentColor};min-width:4px}
+    .gantt-bar-project{background:${style.primaryColor};height:6px;top:3px;opacity:.85}
+    .gantt-grid-row{margin-bottom:6px}
+    .gantt-tick{position:absolute;top:0;font-size:8px;color:#94a3b8;border-left:1px dashed #e2e8f0;padding-left:3px;white-space:nowrap}
+    .gantt-phase{font-size:9px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin:8px 0 3px 134px}
+    /* Cronología ejecutiva */
+    .exec-timeline{margin-top:6px}
+    .exec-timeline-item{display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px solid #f8fafc;font-size:10px}
+    .exec-timeline-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .exec-timeline-date{font-weight:700;color:#475569;min-width:74px;flex-shrink:0}
+    .exec-timeline-label{color:#1e293b}
     /* Footer */
     .report-footer{margin-top:32px;padding-top:12px;border-top:2px solid ${style.accentColor}20;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}
     @media print{
@@ -401,6 +527,9 @@ function buildHTML({ projects, detailData, reportType, style, generatedAt }) {
               }).join('')}
             </tbody>
           </table>`:'<p class="empty-note">Sin riesgos registrados.</p>'}
+
+        <!-- Planner / línea de tiempo -->
+        ${style.showPlanner ? buildPlannerHTML(p, tasks) : ''}
       </div>
     `
   }).join('') : ''
@@ -432,7 +561,7 @@ const EMPTY_STYLE = {
   primaryColor: '#1e293b', accentColor: '#3b82f6', secondaryColor: '#64748b',
   fontFamily: 'Segoe UI', logoText: '',
   footerText: 'Generado con Area Leader Pro',
-  showCoverPage: true, showRiskSummary: true, showMilestones: true,
+  showCoverPage: true, showRiskSummary: true, showMilestones: true, showPlanner: true,
 }
 
 function StyleEditor({ style: initial, onSave, onCancel }) {
@@ -518,6 +647,7 @@ function StyleEditor({ style: initial, onSave, onCancel }) {
                 {k:'showCoverPage',    label:'Portada ejecutiva',           icon:'front_hand'},
                 {k:'showRiskSummary', label:'Riesgos consolidados',         icon:'warning_amber'},
                 {k:'showMilestones',  label:'Próximos hitos (30 días)',     icon:'flag'},
+                {k:'showPlanner',     label:'Línea de tiempo (planner)',    icon:'timeline'},
               ].map(o=>(
                 <div key={o.k} className="toggle-option" onClick={()=>set(o.k,!form[o.k])}>
                   <span className="mat-icon" style={{fontSize:17,color:'var(--accent)'}}>{o.icon}</span>
@@ -636,7 +766,7 @@ export default function ExportModal({ onClose }) {
                   {v:'summary', icon:'table_chart', label:'Vista global',
                    desc:'Portada · Semáforo de salud · Tabla resumen · Riesgos consolidados · Próximos hitos'},
                   {v:'full',    icon:'description', label:'Reporte completo',
-                   desc:'Todo lo anterior + una página de detalle por cada proyecto (tareas, riesgos y equipo)'},
+                   desc:'Todo lo anterior + una página de detalle por cada proyecto (tareas, riesgos, equipo y línea de tiempo)'},
                 ].map(o=>(
                   <button key={o.v} type="button"
                     className={`status-list-item ${reportType===o.v?'sl-active selected':''}`}

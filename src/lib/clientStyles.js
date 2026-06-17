@@ -14,6 +14,7 @@ export const DEFAULT_STYLE = {
   showCoverPage: true,
   showRiskSummary: true,
   showMilestones: true,
+  showPlanner: true,
   createdAt:    new Date().toISOString(),
   isDefault:    true,
 }
