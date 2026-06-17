@@ -2697,3 +2697,47 @@ tbody tr:last-child td { border-bottom: none; }
   text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px;
   padding-left: 172px;
 }
+
+/* Fechas visibles en las barras */
+.planner-bar-dates {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; color: #fff; white-space: nowrap;
+  text-shadow: 0 1px 1px rgba(0,0,0,.25); padding: 0 6px; overflow: hidden;
+}
+.planner-bar-dates-outside {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  font-size: 10px; color: var(--text-muted); white-space: nowrap; padding-left: 6px;
+}
+
+/* Ticks adaptativos: diario más sutil que semanal/mensual */
+.planner-tick-day { border-left: 1px dotted var(--border); }
+.planner-tick-week,
+.planner-tick-month { border-left: 1px dashed var(--border); font-weight: 600; }
+
+/* ── Timeline cronológico ── */
+.planner-timeline { margin-top: 8px; }
+.planner-timeline-title {
+  font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 6px;
+}
+.timeline-list { position: relative; padding-left: 4px; }
+.timeline-list::before {
+  content: ''; position: absolute; left: 15px; top: 8px; bottom: 8px;
+  width: 2px; background: var(--border);
+}
+.timeline-item { position: relative; display: flex; gap: 14px; padding: 8px 0; }
+.timeline-dot {
+  position: relative; z-index: 1; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 3px var(--surface-bright);
+}
+.timeline-item.project .timeline-dot { background: var(--primary); }
+.timeline-dot .mat-icon { font-size: 16px; }
+.timeline-content { padding-top: 2px; }
+.timeline-date { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.timeline-label { font-size: 13px; color: var(--text-primary); margin-top: 1px; }
+.timeline-item.is-past { opacity: .55; }
+.timeline-item.is-today .timeline-dot { box-shadow: 0 0 0 3px var(--surface-bright), 0 0 0 5px var(--error); }
+.timeline-item.is-today .timeline-date { color: var(--error); }

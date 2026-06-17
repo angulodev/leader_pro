@@ -16,18 +16,55 @@ function formatShort(d) {
   return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
 }
 
+function formatLong(d) {
+  return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 function addDays(d, n) {
   const r = new Date(d)
   r.setDate(r.getDate() + n)
   return r
 }
 
-// Genera marcas de grilla mensuales entre rangeStart y rangeEnd.
-function monthTicks(rangeStart, rangeEnd) {
+const DAY_MS = 86400000
+
+// Grilla adaptativa: diaria si el rango es corto, semanal si es medio,
+// mensual si es largo. Así se ve detalle por día en proyectos cortos sin
+// saturar la grilla en proyectos de varios meses.
+function buildTicks(rangeStart, rangeEnd) {
+  const totalDays = Math.round((rangeEnd - rangeStart) / DAY_MS)
+
+  if (totalDays <= 21) {
+    // Diaria
+    const ticks = []
+    let cur = new Date(rangeStart)
+    while (cur <= rangeEnd) {
+      ticks.push({ date: new Date(cur), label: cur.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }), kind: 'day' })
+      cur = addDays(cur, 1)
+    }
+    return ticks
+  }
+
+  if (totalDays <= 90) {
+    // Semanal (lunes de cada semana dentro del rango)
+    const ticks = []
+    let cur = new Date(rangeStart)
+    // Alinear al lunes
+    const day = cur.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    cur = addDays(cur, diff)
+    while (cur <= rangeEnd) {
+      ticks.push({ date: new Date(cur), label: cur.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }), kind: 'week' })
+      cur = addDays(cur, 7)
+    }
+    return ticks
+  }
+
+  // Mensual
   const ticks = []
   let cur = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1)
   while (cur <= rangeEnd) {
-    ticks.push(new Date(cur))
+    ticks.push({ date: new Date(cur), label: cur.toLocaleDateString('es-CL', { month: 'short', year: '2-digit' }), kind: 'month' })
     cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1)
   }
   return ticks
@@ -85,7 +122,7 @@ export default function ProjectPlanner({ project, tasks }) {
 
   const today = new Date(new Date().toDateString())
   const todayPct = today >= rangeStart && today <= rangeEnd ? pct(today) : null
-  const ticks = monthTicks(rangeStart, rangeEnd)
+  const ticks = buildTicks(rangeStart, rangeEnd)
 
   return (
     <div className="planner-wrap">
@@ -103,21 +140,25 @@ export default function ProjectPlanner({ project, tasks }) {
                 left: `${pct(parseDate(project.start_date))}%`,
                 width: `${Math.max(pct(parseDate(project.due_date)) - pct(parseDate(project.start_date)), 1)}%`,
               }}
-              title={`${formatShort(parseDate(project.start_date))} → ${formatShort(parseDate(project.due_date))}`}
-            />
+              title={`${formatLong(parseDate(project.start_date))} → ${formatLong(parseDate(project.due_date))}`}
+            >
+              <span className="planner-bar-dates">
+                {formatShort(parseDate(project.start_date))} → {formatShort(parseDate(project.due_date))}
+              </span>
+            </div>
           )}
         </div>
       </div>
 
       <div className="planner-divider" />
 
-      {/* Grilla de meses */}
+      {/* Grilla adaptativa (diaria / semanal / mensual según el rango) */}
       <div className="planner-grid-row">
         <div className="planner-row-label" />
         <div className="planner-track planner-track-grid">
-          {ticks.map((m, i) => (
-            <div key={i} className="planner-tick" style={{ left: `${pct(m)}%` }}>
-              <span>{m.toLocaleDateString('es-CL', { month: 'short', year: '2-digit' })}</span>
+          {ticks.map((tick, i) => (
+            <div key={i} className={`planner-tick planner-tick-${tick.kind}`} style={{ left: `${pct(tick.date)}%` }}>
+              <span>{tick.label}</span>
             </div>
           ))}
           {todayPct !== null && (
@@ -139,6 +180,7 @@ export default function ProjectPlanner({ project, tasks }) {
             const end   = parseDate(t.due_date || t.start_date)
             const left  = pct(start)
             const width = Math.max(pct(end) - left, 1.2)
+            const wide  = width > 12
             return (
               <div key={t.id} className="planner-row">
                 <div className="planner-row-label" title={t.title}>{t.title}</div>
@@ -146,8 +188,19 @@ export default function ProjectPlanner({ project, tasks }) {
                   <div
                     className="planner-bar"
                     style={{ left: `${left}%`, width: `${width}%`, background: TASK_STATUS_COLOR[t.status] || 'var(--accent)' }}
-                    title={`${t.title} · ${formatShort(start)} → ${formatShort(end)}`}
-                  />
+                    title={`${t.title} · ${formatLong(start)} → ${formatLong(end)}`}
+                  >
+                    {wide && (
+                      <span className="planner-bar-dates">
+                        {formatShort(start)} → {formatShort(end)}
+                      </span>
+                    )}
+                  </div>
+                  {!wide && (
+                    <span className="planner-bar-dates-outside" style={{ left: `${Math.min(left + width, 96)}%` }}>
+                      {formatShort(start)} → {formatShort(end)}
+                    </span>
+                  )}
                   {todayPct !== null && <div className="planner-today planner-today-thin" style={{ left: `${todayPct}%` }} />}
                 </div>
               </div>
@@ -155,6 +208,62 @@ export default function ProjectPlanner({ project, tasks }) {
           })}
         </div>
       ))}
+
+      <div className="planner-divider" style={{ marginTop: 24 }} />
+
+      <ProjectTimeline project={project} tasksWithDates={tasksWithDates} />
+    </div>
+  )
+}
+
+// ── Timeline cronológico ──────────────────────────
+// Lista vertical de todos los hitos del proyecto (inicio/fin de proyecto,
+// inicio/fin de cada tarea) ordenados por fecha, para ver la secuencia
+// completa de un vistazo sin tener que leer barras.
+function ProjectTimeline({ project, tasksWithDates }) {
+  const events = []
+
+  if (project.start_date) {
+    events.push({ date: parseDate(project.start_date), label: 'Inicio del proyecto', icon: 'flag', kind: 'project' })
+  }
+  for (const t of tasksWithDates) {
+    if (t.start_date) {
+      events.push({ date: parseDate(t.start_date), label: `Inicio: ${t.title}`, icon: 'play_circle', kind: 'task-start', status: t.status })
+    }
+    if (t.due_date) {
+      events.push({ date: parseDate(t.due_date), label: `Entrega: ${t.title}`, icon: 'check_circle', kind: 'task-end', status: t.status })
+    }
+  }
+  if (project.due_date) {
+    events.push({ date: parseDate(project.due_date), label: 'Entrega del proyecto', icon: 'sports_score', kind: 'project' })
+  }
+
+  events.sort((a, b) => a.date - b.date)
+
+  if (events.length === 0) return null
+
+  const today = new Date(new Date().toDateString())
+
+  return (
+    <div className="planner-timeline">
+      <div className="planner-timeline-title">Cronología</div>
+      <div className="timeline-list">
+        {events.map((e, i) => {
+          const isPast = e.date < today
+          const isToday = e.date.getTime() === today.getTime()
+          return (
+            <div key={i} className={`timeline-item ${e.kind} ${isPast ? 'is-past' : ''} ${isToday ? 'is-today' : ''}`}>
+              <div className="timeline-dot" style={e.kind !== 'project' ? { background: TASK_STATUS_COLOR[e.status] || 'var(--accent)' } : undefined}>
+                <span className="mat-icon">{e.icon}</span>
+              </div>
+              <div className="timeline-content">
+                <div className="timeline-date">{formatLong(e.date)}{isToday ? ' · Hoy' : ''}</div>
+                <div className="timeline-label">{e.label}</div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
