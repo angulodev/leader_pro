@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getTeamMembers, upsertProject } from '../lib/supabase'
 import { Avatar } from './UI'
+import UpgradePlanModal from './UpgradePlanModal'
 
 const STATUSES = [
   { value: 'backlog',   label: '📋 Backlog',           desc: 'Pendiente de priorizar'     },
@@ -32,6 +33,7 @@ export default function ProjectModal({ project, onClose, onSaved }) {
   const [members, setMembers] = useState([])
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
+  const [upgradeModalData, setUpgradeModalData] = useState(null)
 
   useEffect(() => {
     getTeamMembers().then(setMembers).catch(() => {})
@@ -45,8 +47,23 @@ export default function ProjectModal({ project, onClose, onSaved }) {
     try {
       await upsertProject({ ...form, id: project?.id })
       onSaved()
-    } catch(e) { setError(e.message || 'Error al guardar.') }
+    } catch(e) {
+      if (e.code === 'PLAN_LIMIT_REACHED') {
+        setUpgradeModalData(e.planStatus)
+      } else {
+        setError(e.message || 'Error al guardar.')
+      }
+    }
     finally { setSaving(false) }
+  }
+
+  if (upgradeModalData) {
+    return (
+      <UpgradePlanModal
+        planStatus={upgradeModalData}
+        onClose={() => setUpgradeModalData(null)}
+      />
+    )
   }
 
   return (

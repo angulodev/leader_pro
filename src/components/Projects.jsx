@@ -3,6 +3,7 @@ import { getProjects, deleteProject } from '../lib/supabase'
 import { StatusTag, Avatar, ProgressBar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
 import ExportModal from './ExportModal'
+import PlanLimitBanner from './PlanLimitBanner'
 
 export default function Projects({ onSelectProject }) {
   const [projects, setProjects]       = useState([])
@@ -12,6 +13,7 @@ export default function Projects({ onSelectProject }) {
   const [modal, setModal]             = useState(null)
   const [exportOpen, setExportOpen]   = useState(false) // null | 'new' | project obj
   const [deleting, setDeleting]       = useState(null)
+  const [planRefreshKey, setPlanRefreshKey] = useState(0)
 
   const load = () => {
     setLoading(true)
@@ -34,7 +36,7 @@ export default function Projects({ onSelectProject }) {
     e.stopPropagation()
     if (!window.confirm(`¿Eliminar "${p.name}"? Se borrarán todas sus tareas y actividad.`)) return
     setDeleting(p.id)
-    try { await deleteProject(p.id); load() }
+    try { await deleteProject(p.id); load(); setPlanRefreshKey(k => k + 1) }
     catch(err) { alert('Error: ' + err.message) }
     finally { setDeleting(null) }
   }
@@ -53,6 +55,8 @@ export default function Projects({ onSelectProject }) {
           </button>
         </div>
       </div>
+
+      <PlanLimitBanner refreshKey={planRefreshKey} onGoToPlans={() => window.open('../../marketing/index.html#pricing', '_blank')} />
 
       {/* Summary strip */}
       <div className="summary-strip">
@@ -167,7 +171,7 @@ export default function Projects({ onSelectProject }) {
         <ProjectModal
           project={modal === 'new' ? null : modal}
           onClose={() => setModal(null)}
-          onSaved={() => { setModal(null); load() }}
+          onSaved={() => { setModal(null); load(); setPlanRefreshKey(k => k + 1) }}
         />
       )}
     </div>

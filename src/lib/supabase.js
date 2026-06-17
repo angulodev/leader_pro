@@ -62,6 +62,34 @@ export async function upsertProject(project) {
     p_due_date:    project.due_date || null,
     p_description: project.description || null,
   })
+
+  if (error) {
+    if (error.message?.includes('project_limit_reached')) {
+      let planStatus = null
+      try {
+        planStatus = await getPlanStatus()
+      } catch {
+        // si falla la consulta de plan, igual avisamos el límite sin detalle
+      }
+      const limitError = new Error('project_limit_reached')
+      limitError.code = 'PLAN_LIMIT_REACHED'
+      limitError.planStatus = planStatus
+      throw limitError
+    }
+    throw error
+  }
+  return data
+}
+
+// ── Planes y límites ──────────────────────────────
+export async function getPlanStatus() {
+  const { data, error } = await supabase.rpc('al_plan_status')
+  if (error) throw error
+  return data
+}
+
+export async function requestUpgrade(planId) {
+  const { data, error } = await supabase.rpc('al_request_upgrade', { p_plan_id: planId })
   if (error) throw error
   return data
 }
