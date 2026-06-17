@@ -114,6 +114,9 @@ export default function UserPanel({ onClose }) {
     role:  prefs.role  || 'Area Leader',
     email: prefs.email || '',
     color: prefs.color || '#1e293b',
+    splashTitle:    prefs.splashTitle    || '',
+    splashSubtitle: prefs.splashSubtitle || '',
+    splashLogo:     prefs.splashLogo     || '',
   })
   const [saved, setSaved]         = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
@@ -217,6 +220,34 @@ export default function UserPanel({ onClose }) {
                 ))}
               </div>
             </div>
+
+            <div className="user-section-divider">Pantalla de presentación</div>
+
+            <div className="form-group">
+              <label className="form-label">Título principal</label>
+              <input className="form-input" value={form.splashTitle}
+                onChange={e => setForm(f => ({ ...f, splashTitle: e.target.value }))}
+                placeholder="ej. Gestión de Proyectos 2026"/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Subtítulo</label>
+              <input className="form-input" value={form.splashSubtitle}
+                onChange={e => setForm(f => ({ ...f, splashSubtitle: e.target.value }))}
+                placeholder="ej. Empresa ABC · Q3 2026"/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Logo (URL de imagen)</label>
+              <input className="form-input" value={form.splashLogo}
+                onChange={e => setForm(f => ({ ...f, splashLogo: e.target.value }))}
+                placeholder="https://empresa.cl/logo.png"/>
+              {form.splashLogo && (
+                <div style={{marginTop:8,padding:12,background:'var(--surface)',borderRadius:'var(--radius)',textAlign:'center'}}>
+                  <img src={form.splashLogo} alt="preview" style={{maxHeight:48,maxWidth:'100%',objectFit:'contain'}}
+                    onError={e=>e.target.style.display='none'}/>
+                </div>
+              )}
+            </div>
+
             <button className="btn btn-primary" style={{ width:'100%', justifyContent:'center' }}
               onClick={handleSaveProfile}>
               {saved

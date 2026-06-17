@@ -32,12 +32,18 @@ const now     = () => new Date().toISOString()
 // ── Portfolio health score ────────────────────────
 function portfolioHealth(projects) {
   if (!projects.length) return 0
-  const score = projects.reduce((a, p) => a + (STATUS_CFG[p.status]?.health || 50), 0) / projects.length
+  // Weighted: 60% real progress, 40% status factor
+  const statusFactor = { backlog: 0, planning: 30, active: 70, 'at-risk': 40, 'on-hold': 20, completed: 100 }
+  const score = projects.reduce((a, p) => {
+    const prog   = p.progress || 0
+    const status = statusFactor[p.status] ?? 50
+    return a + (prog * 0.6 + status * 0.4)
+  }, 0) / projects.length
   return Math.round(score)
 }
 function healthLabel(score) {
-  if (score >= 80) return { label: 'Saludable',   color: '#10b981', bg: '#d1fae5' }
-  if (score >= 55) return { label: 'Moderado',    color: '#f59e0b', bg: '#fef3c7' }
+  if (score >= 70) return { label: 'Saludable',   color: '#10b981', bg: '#d1fae5' }
+  if (score >= 40) return { label: 'Moderado',    color: '#f59e0b', bg: '#fef3c7' }
   return               { label: 'En atención',  color: '#ef4444', bg: '#fee2e2' }
 }
 

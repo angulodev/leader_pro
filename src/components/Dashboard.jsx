@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getDashboardKPIs, getRisks, getActivity, getProjects } from '../lib/supabase'
+import { getDashboardKPIs, getRisks, getActivity, getProjects, getUserPrefs } from '../lib/supabase'
 import { KPICard, StatusTag, Skeleton } from './UI'
 
 function timeAgo(iso) {
@@ -62,6 +62,7 @@ function BarChartSVG({ data }) {
 }
 
 export default function Dashboard({ onNavigate, onExport }) {
+  const prefs = getUserPrefs()
   const [kpi, setKpi] = useState(null)
   const [risks, setRisks] = useState([])
   const [activity, setActivity] = useState([])
@@ -75,6 +76,38 @@ export default function Dashboard({ onNavigate, onExport }) {
   }, [])
 
   const chartData = projects.map(p => ({ label: p.name.split(' ')[0], actual: p.progress, est: p.estimated }))
+
+  if (showSplash) {
+    return (
+      <div className="splash-screen" onClick={() => {
+        sessionStorage.setItem('alp_splash_seen', '1')
+        setShowSplash(false)
+      }}>
+        <div className="splash-inner">
+          {prefs.splashLogo
+            ? <img src={prefs.splashLogo} alt="Logo" className="splash-logo-img"/>
+            : (
+              <div className="splash-brand-icon">
+                <span className="mat-icon">hub</span>
+              </div>
+            )
+          }
+          <div className="splash-title">{prefs.splashTitle || 'Area Leader Pro'}</div>
+          <div className="splash-subtitle">{prefs.splashSubtitle || 'Plataforma de gestión de proyectos'}</div>
+          <div className="splash-user">
+            <div className="avatar-circle" style={{width:32,height:32,background:prefs.color||'#1e293b',fontSize:12}}>
+              {(prefs.name||'?').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
+            </div>
+            <div>
+              <div style={{fontSize:14,fontWeight:600,color:'white'}}>{prefs.name || 'Bienvenido'}</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,.5)'}}>{prefs.role || 'Area Leader'}</div>
+            </div>
+          </div>
+          <div className="splash-cta">Toca para continuar</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="screen-content">
