@@ -167,10 +167,6 @@ function AppInner() {
             </button>
             {notifOpen && <Notifications onClose={() => setNotifOpen(false)} />}
           </div>
-          <button className="icon-btn" title="Configuración"
-            onClick={() => { navigate('/settings'); if (!sidePinned) setSideOpen(false) }}>
-            <span className="mat-icon">settings</span>
-          </button>
           <div style={{ position: 'relative' }}>
             <div
               className="avatar-circle topnav-avatar"

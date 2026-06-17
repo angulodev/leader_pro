@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase, getUserPrefs, saveUserPrefs } from '../lib/supabase'
-import { Avatar } from './UI'
+import { Avatar, ConfirmModal } from './UI'
 
 const AVATAR_COLORS = ['#1e293b','#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899']
 
@@ -14,13 +14,16 @@ export default function ProfileDropdown({ onClose, onSaved }) {
     color: prefs.color || '#1e293b',
   })
   const [saved, setSaved] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
 
-  // Close on outside click
+  // Close on outside click (desactivado mientras se confirma el logout,
+  // para que cancelar/cerrar el modal no cierre también el dropdown de perfil)
   useEffect(() => {
+    if (confirmLogout) return
     function h(e) { if (panelRef.current && !panelRef.current.contains(e.target)) onClose() }
     setTimeout(() => document.addEventListener('mousedown', h), 0)
     return () => document.removeEventListener('mousedown', h)
-  }, [onClose])
+  }, [onClose, confirmLogout])
 
   function handleSave() {
     saveUserPrefs(form)
@@ -92,13 +95,24 @@ export default function ProfileDropdown({ onClose, onSaved }) {
           <button
             className="btn btn-danger"
             style={{ width:'100%', justifyContent:'center' }}
-            onClick={async () => { await supabase.auth.signOut() }}
+            onClick={() => setConfirmLogout(true)}
           >
             <span className="mat-icon">logout</span>
             Cerrar sesión
           </button>
         </div>
       </div>
+
+      {confirmLogout && (
+        <ConfirmModal
+          title="Cerrar sesión"
+          message="¿Seguro que quieres cerrar sesión? Tendrás que volver a iniciar sesión para acceder a tus proyectos."
+          confirmLabel="Cerrar sesión"
+          confirmClass="btn-danger"
+          onConfirm={async () => { await supabase.auth.signOut() }}
+          onCancel={() => setConfirmLogout(false)}
+        />
+      )}
     </div>
   )
 }

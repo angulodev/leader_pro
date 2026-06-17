@@ -92,3 +92,25 @@ export function EmptyState({ icon, title, sub }) {
     </div>
   )
 }
+
+export function ConfirmModal({ title, message, confirmLabel, confirmClass = 'btn-primary', onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onCancel() }}>
+      <div className="modal modal-sm">
+        <div className="modal-header">
+          <h2 className="modal-title">{title}</h2>
+          <button className="icon-btn" onClick={onCancel}>
+            <span className="mat-icon">close</span>
+          </button>
+        </div>
+        <div className="modal-body">
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{message}</p>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" onClick={onCancel}>Cancelar</button>
+          <button className={`btn ${confirmClass}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
