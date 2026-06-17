@@ -87,7 +87,8 @@ function AppInner() {
 
   const STATUS_COLOR = {
     active:'#10b981','at-risk':'#f59e0b',planning:'#3b82f6',
-    'on-hold':'#8b5cf6',backlog:'#94a3b8',completed:'#06b6d4'
+    'on-hold':'#8b5cf6',backlog:'#94a3b8',completed:'#06b6d4',
+    cancelled:'#ef4444',closed:'#64748b'
   }
 
   function goNav(nav) {

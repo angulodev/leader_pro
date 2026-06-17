@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getProjects, deleteProject } from '../lib/supabase'
-import { StatusTag, Avatar, ProgressBar, Skeleton, EmptyState } from './UI'
+import { StatusTag, Avatar, ProgressBar, Skeleton, EmptyState, ConfirmModal } from './UI'
 import ProjectModal from './ProjectModal'
+import { FINAL_STATUSES } from '../lib/projectStatus'
 import ExportModal from './ExportModal'
 import PlanLimitBanner from './PlanLimitBanner'
 
@@ -14,6 +15,8 @@ export default function Projects({ onSelectProject }) {
   const [exportOpen, setExportOpen]   = useState(false) // null | 'new' | project obj
   const [deleting, setDeleting]       = useState(null)
   const [planRefreshKey, setPlanRefreshKey] = useState(0)
+  const [showArchived, setShowArchived] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null) // project a confirmar
 
   const load = () => {
     setLoading(true)
@@ -26,18 +29,26 @@ export default function Projects({ onSelectProject }) {
 
   const filtered = projects.filter(p => {
     const q = search.toLowerCase()
-    return (!q || p.name.toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q))
+    const archived = !!p.archived_at
+    return (showArchived ? archived : !archived)
+      && (!q || p.name.toLowerCase().includes(q) || (p.client||'').toLowerCase().includes(q))
       && (!filterStatus || p.status === filterStatus)
   })
 
-  const avgProgress  = projects.length
-    ? (projects.reduce((a, p) => a + p.progress, 0) / projects.length).toFixed(0) : 0
-  const atRiskCount  = projects.filter(p => ['at-risk','on-hold'].includes(p.status)).length
-  const onTrackCount = projects.filter(p => p.status === 'active').length
+  const activeProjects = projects.filter(p => !p.archived_at)
+  const avgProgress  = activeProjects.length
+    ? (activeProjects.reduce((a, p) => a + p.progress, 0) / activeProjects.length).toFixed(0) : 0
+  const atRiskCount  = activeProjects.filter(p => ['at-risk','on-hold'].includes(p.status)).length
+  const onTrackCount = activeProjects.filter(p => p.status === 'active').length
 
-  async function handleDelete(p, e) {
+  function askDelete(p, e) {
     e.stopPropagation()
-    if (!window.confirm(`¿Eliminar "${p.name}"? Se borrarán todas sus tareas y actividad.`)) return
+    setConfirmDelete(p)
+  }
+
+  async function confirmDeleteProject() {
+    const p = confirmDelete
+    setConfirmDelete(null)
     setDeleting(p.id)
     try { await deleteProject(p.id); load(); setPlanRefreshKey(k => k + 1) }
     catch(err) { alert('Error: ' + err.message) }
@@ -48,8 +59,8 @@ export default function Projects({ onSelectProject }) {
     <div className="screen-content">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Cartera de Proyectos</h1>
-          <p className="page-sub">{projects.length} proyectos · Q2 2026</p>
+          <h1 className="page-title">{showArchived ? 'Proyectos archivados' : 'Cartera de Proyectos'}</h1>
+          <p className="page-sub">{filtered.length} proyectos{showArchived ? ' archivados' : ''} · Q2 2026</p>
         </div>
         <div className="header-actions">
           <button className="btn btn-ghost" onClick={() => setExportOpen(true)}><span className="mat-icon">picture_as_pdf</span><span>Exportar</span></button>
@@ -96,7 +107,16 @@ export default function Projects({ onSelectProject }) {
           <option value="at-risk">En riesgo</option>
           <option value="on-hold">En pausa</option>
           <option value="completed">Completado</option>
+          <option value="cancelled">Cancelado</option>
+          <option value="closed">Cerrado</option>
         </select>
+        <button
+          className={`btn btn-ghost btn-sm ${showArchived ? 'active' : ''}`}
+          onClick={() => setShowArchived(s => !s)}
+          title={showArchived ? 'Ver proyectos activos' : 'Ver proyectos archivados'}>
+          <span className="mat-icon">{showArchived ? 'unarchive' : 'archive'}</span>
+          <span>{showArchived ? 'Ver activos' : 'Ver archivados'}</span>
+        </button>
       </div>
 
       {/* Table */}
@@ -104,8 +124,8 @@ export default function Projects({ onSelectProject }) {
         {loading ? (
           <div style={{padding:16}}><Skeleton h={44}/><Skeleton h={44} style={{marginTop:8}}/><Skeleton h={44} style={{marginTop:8}}/></div>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="folder_off" title="Sin proyectos"
-            sub={search || filterStatus ? 'Intenta ajustar los filtros.' : 'Crea tu primer proyecto.'} />
+          <EmptyState icon="folder_off" title={showArchived ? 'Sin proyectos archivados' : 'Sin proyectos'}
+            sub={search || filterStatus ? 'Intenta ajustar los filtros.' : showArchived ? 'Los proyectos completados, cancelados o cerrados aparecerán aquí.' : 'Crea tu primer proyecto.'} />
         ) : (
           <div className="table-wrap">
             <table>
@@ -137,7 +157,7 @@ export default function Projects({ onSelectProject }) {
                       ) : <span style={{color:'var(--text-muted)',fontSize:11}}>Sin líder</span>}
                     </td>
                     <td>
-                      <span className={`due-date ${p.due_date && new Date(p.due_date) < new Date() && p.status !== 'completed' ? 'overdue' : ''}`}>
+                      <span className={`due-date ${p.due_date && new Date(p.due_date) < new Date() && !FINAL_STATUSES.includes(p.status) ? 'overdue' : ''}`}>
                         {p.due_date ? new Date(p.due_date).toLocaleDateString('es-CL') : '—'}
                       </span>
                     </td>
@@ -146,11 +166,16 @@ export default function Projects({ onSelectProject }) {
                         <button className="icon-btn" title="Editar" onClick={() => setModal(p)}>
                           <span className="mat-icon">edit</span>
                         </button>
-                        <button className="icon-btn icon-btn-danger" title="Eliminar"
-                          disabled={deleting === p.id}
-                          onClick={e => handleDelete(p, e)}>
-                          <span className="mat-icon">{deleting === p.id ? 'hourglass_empty' : 'delete_outline'}</span>
-                        </button>
+                        {!p.archived_at && (
+                          <button className="icon-btn icon-btn-danger"
+                            title={FINAL_STATUSES.includes(p.status) ? 'Archivar' : 'Eliminar'}
+                            disabled={deleting === p.id}
+                            onClick={e => askDelete(p, e)}>
+                            <span className="mat-icon">
+                              {deleting === p.id ? 'hourglass_empty' : FINAL_STATUSES.includes(p.status) ? 'archive' : 'delete_outline'}
+                            </span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -175,6 +200,21 @@ export default function Projects({ onSelectProject }) {
           project={modal === 'new' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); load(); setPlanRefreshKey(k => k + 1) }}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          title={FINAL_STATUSES.includes(confirmDelete.status) ? 'Archivar proyecto' : 'Eliminar proyecto'}
+          message={
+            FINAL_STATUSES.includes(confirmDelete.status)
+              ? `"${confirmDelete.name}" está en estado final y no se puede borrar. Se archivará y dejará de aparecer en la lista principal — podrás verlo con "Ver archivados".`
+              : `¿Eliminar "${confirmDelete.name}"? Se borrarán todas sus tareas y actividad. Esta acción no se puede deshacer.`
+          }
+          confirmLabel={FINAL_STATUSES.includes(confirmDelete.status) ? 'Archivar' : 'Eliminar'}
+          confirmClass="btn-danger"
+          onConfirm={confirmDeleteProject}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
     </div>

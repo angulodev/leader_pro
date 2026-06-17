@@ -61,6 +61,7 @@ export async function upsertProject(project) {
     p_leader_id:   project.leader_id || null,
     p_due_date:    project.due_date || null,
     p_description: project.description || null,
+    p_start_date:  project.start_date || null,
   })
 
   if (error) {

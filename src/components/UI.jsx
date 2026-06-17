@@ -8,6 +8,8 @@ export function StatusTag({ status }) {
     'at-risk':   { label: 'En riesgo',      cls: 'tag-warning' },
     'on-hold':   { label: 'En pausa',       cls: 'tag-hold'    },
     'completed': { label: 'Completado',     cls: 'tag-done'    },
+    'cancelled': { label: 'Cancelado',      cls: 'tag-error'   },
+    'closed':    { label: 'Cerrado',        cls: 'tag-muted'   },
     // task statuses
     'todo':        { label: 'Pendiente',    cls: 'tag-muted'   },
     'in-progress': { label: 'En curso',     cls: 'tag-info'    },

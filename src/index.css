@@ -249,6 +249,7 @@ body {
 }
 .btn .mat-icon { font-size: 15px; }
 .btn-sm { padding: 5px 9px; font-size: 11px; }
+.btn-ghost.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
 .btn-primary { background: var(--primary); color: white; }
 .btn-primary:hover { background: #0f172a; }
 .btn-ghost { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border); }

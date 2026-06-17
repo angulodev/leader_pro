@@ -10,12 +10,14 @@ const STATUSES = [
   { value: 'at-risk',   label: '⚠️ En riesgo',          desc: 'Requiere atención inmediata' },
   { value: 'on-hold',   label: '⏸ En pausa',            desc: 'Bloqueado o suspendido'     },
   { value: 'completed', label: '✅ Completado',          desc: 'Entregado y cerrado'        },
+  { value: 'cancelled', label: '🚫 Cancelado',          desc: 'No se llevará a cabo'       },
+  { value: 'closed',    label: '🔒 Cerrado',            desc: 'Finalizado sin completar'   },
 ]
 
 const EMPTY = {
   name: '', client: '', status: 'planning',
   progress: 0, estimated: 0, budget: '',
-  leader_id: '', due_date: '', description: '',
+  leader_id: '', start_date: '', due_date: '', description: '',
 }
 
 export default function ProjectModal({ project, onClose, onSaved }) {
@@ -27,6 +29,7 @@ export default function ProjectModal({ project, onClose, onSaved }) {
     progress:    project.progress    || 0,
     estimated:   project.estimated   || 0,
     leader_id:   project.leader_id   || '',
+    start_date:  project.start_date  || '',
     due_date:    project.due_date    || '',
     description: project.description || '',
   } : EMPTY)
@@ -122,7 +125,12 @@ export default function ProjectModal({ project, onClose, onSaved }) {
           </div>
 
           <div className="form-row">
-              <div className="form-group">
+            <div className="form-group">
+              <label className="form-label">Fecha de inicio</label>
+              <input className="form-input" type="date" value={form.start_date}
+                onChange={e => set('start_date', e.target.value)} />
+            </div>
+            <div className="form-group">
               <label className="form-label">Fecha de entrega</label>
               <input className="form-input" type="date" value={form.due_date}
                 onChange={e => set('due_date', e.target.value)} />
