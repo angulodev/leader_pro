@@ -20,6 +20,8 @@ Plataforma web de gestión de proyectos diseñada para líderes de área. Permit
 10. [Exportación de reportes PDF](#exportación-de-reportes-pdf)
 11. [Deploy en producción](#deploy-en-producción)
 12. [CI/CD con GitHub Actions](#cicd-con-github-actions)
+13. [Planes y monetización](#planes-y-monetización)
+14. [Flujo de upgrade de plan](#flujo-de-upgrade-de-plan)
 
 ---
 
@@ -53,6 +55,8 @@ Plataforma web de gestión de proyectos diseñada para líderes de área. Permit
 - Filtros por estado y búsqueda por nombre/cliente
 - Métricas de resumen en tiempo real (total, progreso prom., en riesgo, on track)
 - Navegación directa al detalle desde la tabla
+- Banner de aviso cuando el usuario está cerca o en el límite de proyectos de su plan
+- Modal de upgrade al intentar crear un proyecto que excede el límite del plan actual (ver [Flujo de upgrade de plan](#flujo-de-upgrade-de-plan))
 
 ### Detalle de Proyecto — 4 tabs
 
@@ -182,6 +186,8 @@ area-leader-pro/
 │   │   ├── Projects.jsx         # Cartera con filtros, tabla y exportación
 │   │   ├── ProjectDetail.jsx    # Tabs: overview, tareas, riesgos, equipo
 │   │   ├── ProjectModal.jsx     # Modal crear/editar proyecto con selector de estado
+│   │   ├── UpgradePlanModal.jsx # Modal de límite de plan + solicitud de upgrade
+│   │   ├── PlanLimitBanner.jsx  # Aviso de cercanía/límite de plan en Proyectos
 │   │   ├── ExportModal.jsx      # Exportador PDF con perfiles de cliente
 │   │   ├── Team.jsx             # Gestión de equipo con soft delete
 │   │   ├── Workload.jsx         # Mapa de calor con navegación semanal real
@@ -190,14 +196,15 @@ area-leader-pro/
 │   │   ├── UserPanel.jsx        # Perfil, temas y ajustes de usuario
 │   │   └── UI.jsx               # Componentes compartidos (Avatar, StatusTag, etc.)
 │   ├── lib/
-│   │   ├── supabase.js          # Cliente Supabase + todas las queries y RPCs
+│   │   ├── supabase.js          # Cliente Supabase + todas las queries y RPCs (incluye getPlanStatus/requestUpgrade)
 │   │   └── clientStyles.js      # Gestión de perfiles de estilo para PDF
 │   ├── App.jsx                  # Shell con React Router, layout y navegación
 │   ├── index.css                # Design system completo (tokens, dark mode, responsive)
 │   └── main.jsx                 # Entry point React
 ├── supabase/
 │   └── migrations/
-│       └── 001_full_schema.sql  # Schema completo para instalar desde cero
+│       ├── 001_full_schema.sql              # Schema completo para instalar desde cero
+│       └── 20260617_subscriptions_upgrade_flow.sql  # Tabla subscriptions + RPC al_request_upgrade
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml           # CI/CD: build + copy 404.html + deploy a GitHub Pages
@@ -256,7 +263,9 @@ npm run dev
 
 ### 3. Aplicar el schema
 
-**SQL Editor → New query** → pegar y ejecutar `supabase/migrations/001_full_schema.sql`
+**SQL Editor → New query** → pegar y ejecutar, en este orden:
+1. `supabase/migrations/001_full_schema.sql` — schema base, proyectos, equipo, tareas, riesgos
+2. `supabase/migrations/20260617_plans_and_subscriptions.sql` — catálogo de planes, plan por usuario, tabla `subscriptions` y RPCs del flujo de upgrade
 
 El schema crea automáticamente:
 - Schema `area_leader` con todas las tablas
@@ -265,6 +274,8 @@ El schema crea automáticamente:
 - Políticas RLS
 
 > **Nota sobre PostgREST:** por defecto solo expone el schema `public`. Por eso todas las lecturas usan vistas en `public` que apuntan a `area_leader`, y todas las escrituras usan funciones RPC también en `public`.
+
+> Las tablas `plans` y `user_plans` (catálogo de planes y plan activo por usuario) se versionan en `supabase/migrations/20260617_plans_and_subscriptions.sql`, junto con `subscriptions`. No estaban en `001_full_schema.sql` originalmente — fueron creadas después directamente en la base y se versionan recién en esta migración.
 
 ---
 
@@ -281,6 +292,8 @@ El schema crea automáticamente:
 | `risks` | Riesgos con severidad (high/medium/low) e impacto |
 | `activity` | Feed de eventos: comentarios, estados, hitos |
 | `workload` | Horas asignadas por persona/día/semana/proyecto |
+
+> Las tablas de planes (`plans`, `user_plans`, `subscriptions`) viven directamente en el schema `public`, no en `area_leader` — son del sistema de monetización, no de gestión de proyectos. Detalle completo en [Planes y monetización](#planes-y-monetización).
 
 ### Estados válidos
 
@@ -452,35 +465,82 @@ MIT — Angulodev · Francisco Angulo · [github.com/angulodev/leader_pro](https
 
 ## Planes y monetización
 
-Area Leader Pro incluye un sistema de planes por usuario. Cada nuevo usuario recibe automáticamente el plan **Básico** (gratis) al registrarse, via trigger en Supabase.
+Area Leader Pro incluye un sistema de planes por usuario. Cada nuevo usuario recibe automáticamente el plan **Básico** (gratis) al registrarse, vía trigger en Supabase.
 
-| Plan | Precio CLP | Proyectos |
-|------|-----------|-----------|
-| Básico | Gratis | 1 |
-| Inicial | $5.990/mes | 3 |
-| Pro | $10.990/mes | 10 |
-| Avanzado | $29.990/mes | 30 |
-| Ultra | $45.990/mes | 50 |
-| Enterprise | $89.990/mes | 100 + BD dedicada |
+| Plan | ID | Precio CLP | Proyectos |
+|------|-----|-----------|-----------|
+| Básico | `basic` | Gratis | 1 |
+| Inicial | `starter` | $5.990/mes | 3 |
+| Pro | `pro` | $10.990/mes | 10 |
+| Avanzado | `advanced` | $29.990/mes | 30 |
+| Ultra | `ultra` | $45.990/mes | 50 |
+| Enterprise | `enterprise` | $89.990/mes | 100 + BD dedicada |
 
 ### Tablas de planes
 
-- `public.plans` — catálogo de planes con precio y límite de proyectos
-- `public.user_plans` — suscripción activa de cada usuario (RLS: cada usuario ve solo la suya)
+- `public.plans` — catálogo de planes con precio y límite de proyectos. Sin RLS (es un catálogo), pero con grants restringidos a solo `SELECT` para `anon`/`authenticated` — nadie puede insertar, editar ni borrar planes desde el cliente.
+- `public.user_plans` — plan activo de cada usuario. RLS: cada usuario ve solo el suyo (`user_id = auth.uid()`). Grant de tabla limitado a `SELECT`; la escritura solo ocurre vía el trigger `handle_new_user_plan` o por admin SQL directo.
+- `public.subscriptions` — historial de solicitudes/ciclos de suscripción. RLS por usuario. Grant limitado a `SELECT` + `INSERT` para `authenticated`. Ver [Flujo de upgrade de plan](#flujo-de-upgrade-de-plan).
 
 ### Funciones RPC relacionadas
 
-- `al_get_my_plan()` — retorna plan actual + proyectos activos del usuario
-- `al_can_create_project()` — retorna `true/false` según límite del plan
-- Trigger `on_auth_user_plan` — asigna plan básico automáticamente al registrarse
+| Función | Operación |
+|---------|-----------|
+| `al_get_my_plan()` | Retorna plan actual (id, nombre, precio, límite) + proyectos activos del usuario |
+| `al_plan_status()` | Retorna el estado completo del plan: actual, consumo, `near_limit`/`at_limit` y el `next_plan` sugerido. Es lo que consume `PlanLimitBanner` y `UpgradePlanModal` en el frontend |
+| `al_can_create_project()` | Retorna `true`/`false` según si el usuario puede crear un proyecto más dentro de su límite |
+| `al_request_upgrade(plan_id)` | Registra una solicitud de upgrade en `subscriptions` con estado `pending`. No activa el plan — eso ocurre cuando se confirme el pago (ver abajo) |
 
-### Cómo cambiar el plan de un usuario (admin SQL)
+Trigger `on_auth_user_plan` (en `auth.users`, ejecuta `handle_new_user_plan()`) — asigna el plan `basic` automáticamente al registrarse.
+
+`al_upsert_project(...)` lanza la excepción `project_limit_reached` cuando el usuario intenta crear un proyecto excediendo el límite de su plan. El frontend (`lib/supabase.js`) detecta ese mensaje, consulta `al_plan_status()` y dispara el modal de upgrade en lugar de mostrar un error genérico.
+
+### Cómo cambiar el plan de un usuario manualmente (admin SQL)
 
 ```sql
 UPDATE public.user_plans
 SET plan_id = 'pro'
 WHERE user_id = 'UUID_DEL_USUARIO';
 ```
+
+---
+
+## Flujo de upgrade de plan
+
+Cuando un usuario alcanza el límite de proyectos de su plan, el flujo es:
+
+1. **Intento de crear proyecto** → `al_upsert_project` detecta que `al_can_create_project()` es `false` y lanza `project_limit_reached`.
+2. **Frontend captura el error** en `upsertProject()` (`lib/supabase.js`), consulta `al_plan_status()` y propaga un error con `code: 'PLAN_LIMIT_REACHED'` y el detalle del plan.
+3. **`ProjectModal`** reemplaza el formulario por **`UpgradePlanModal`**, mostrando el plan actual, el consumo y el plan siguiente recomendado (`next_plan`).
+4. El usuario confirma con "Quiero subir a [plan]" → se llama `al_request_upgrade(plan_id)`, que inserta una fila en `public.subscriptions` con `status = 'pending'`.
+5. El modal confirma que la solicitud quedó registrada. **El plan todavía no se activa en este punto.**
+
+Adicionalmente, **`PlanLimitBanner`** se muestra en la pantalla de Proyectos cuando el usuario está cerca (`near_limit`) o ya en el límite (`at_limit`), sin esperar a que intente crear un proyecto.
+
+> **Nota de seguridad (2026-06-17):** al crear `plans`/`user_plans`/`subscriptions`, Supabase otorga por defecto `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE` a `anon` y `authenticated` en tablas nuevas del schema `public`. Se detectó y corrigió: `plans` quedó en solo lectura pública, y `user_plans`/`subscriptions` quedaron con grants mínimos (`SELECT`, y `INSERT` solo en `subscriptions`), dependiendo de las funciones `SECURITY DEFINER` para cualquier escritura real. La migración versionada en este repo ya incluye estos `revoke` desde el inicio.
+
+### Estado actual: pago real pendiente de integrar
+
+El esquema de `subscriptions` está diseñado para ser **agnóstico del proveedor de pago**:
+
+```sql
+-- public.subscriptions
+id                          uuid
+user_id                      uuid
+plan_id                      text        -- referencia a plans.id
+status                       text        -- pending | active | past_due | cancelled
+provider                     text        -- null hasta integrar (ej. 'mercadopago', 'stripe')
+provider_subscription_id     text        -- id externo del proveedor una vez creado el checkout
+current_period_start         timestamptz
+current_period_end           timestamptz
+```
+
+Aún **no hay proveedor de pago decidido ni integrado**. Falta, en este orden:
+
+1. Elegir proveedor (candidato evaluado: Mercado Pago, por cobro en CLP y soporte de suscripciones recurrentes vía `preapproval`).
+2. Crear una Edge Function que reciba el webhook del proveedor y, al confirmar el pago, actualice `subscriptions.status = 'active'` y `user_plans.plan_id`.
+3. Conectar `UpgradePlanModal` al checkout real del proveedor en vez del registro de solicitud `pending` actual.
+4. Manejar renovación mensual y `past_due` / `cancelled` cuando falle un cobro.
 
 ---
 
