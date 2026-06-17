@@ -383,11 +383,7 @@ export default function Settings() {
               <div className="pref-divider" />
               <div style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.6 }}>
                 <strong>Area Leader Pro</strong> v1.0.0<br/>
-                React 18 + Vite + Supabase<br/>
-                <a href="https://github.com/angulodev/leader_pro" target="_blank"
-                  rel="noreferrer" style={{ color:'var(--accent)' }}>
-                  Ver en GitHub →
-                </a>
+                React 18 + Vite + Supabase
               </div>
 
               <div className="pref-divider" />

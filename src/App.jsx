@@ -172,6 +172,10 @@ function AppInner() {
             onClick={() => { navigate('/settings'); if (!sidePinned) setSideOpen(false) }}>
             {(userPrefs.name || 'FA').trim().split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('')}
           </div>
+          <button className="icon-btn icon-btn-danger" title="Cerrar sesión"
+            onClick={() => supabase.auth.signOut()}>
+            <span className="mat-icon">logout</span>
+          </button>
         </div>
       </header>
 
