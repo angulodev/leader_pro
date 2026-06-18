@@ -321,6 +321,43 @@ export async function getActiveProjects() {
   return data || []
 }
 
+// ── Share links (compartir portfolio o proyecto) ──
+export async function createShareLink({ scope, projectId = null, label = null, expiresInDays = null }) {
+  const { data, error } = await supabase.rpc('al_create_share_link', {
+    p_scope: scope,
+    p_project_id: projectId,
+    p_label: label,
+    p_expires_in_days: expiresInDays,
+  })
+  if (error) throw error
+  return data
+}
+
+export async function listShareLinks(projectId = null) {
+  const { data, error } = await supabase.rpc('al_list_share_links', { p_project_id: projectId })
+  if (error) throw error
+  return data || []
+}
+
+export async function revokeShareLink(id) {
+  const { error } = await supabase.rpc('al_revoke_share_link', { p_id: id })
+  if (error) throw error
+}
+
+// Lectura pública por token — usa el cliente normal de supabase-js,
+// pero estas RPCs no requieren sesión (auth.uid() es NULL y no se usa).
+export async function getSharedPortfolio(token) {
+  const { data, error } = await supabase.rpc('al_get_shared_portfolio', { p_token: token })
+  if (error) throw error
+  return data
+}
+
+export async function getSharedProject(token) {
+  const { data, error } = await supabase.rpc('al_get_shared_project', { p_token: token })
+  if (error) throw error
+  return data
+}
+
 // ── User preferences (localStorage) ──────────────
 const PREFS_KEY = 'alp_user_prefs'
 export function getUserPrefs() {

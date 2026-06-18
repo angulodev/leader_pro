@@ -8,6 +8,7 @@ import {
 import { StatusTag, Avatar, Skeleton, EmptyState } from './UI'
 import ProjectModal from './ProjectModal'
 import ProjectPlanner from './ProjectPlanner'
+import ShareModal from './ShareModal'
 
 
 const RISK_STATUS = {
@@ -52,6 +53,7 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
   const [comment, setComment]       = useState('')
   const [sending, setSending]       = useState(false)
   const [showEditProject, setShowEditProject] = useState(false)
+  const [shareOpen, setShareOpen]   = useState(false)
   // Task modal
   const [taskModal, setTaskModal]   = useState(null)     // null | 'new' | task obj
   const [taskForm, setTaskForm]     = useState(EMPTY_TASK)
@@ -262,12 +264,25 @@ export default function ProjectDetail({ project: initialProject, onBack, onProje
           </p>
         </div>
         <div className="header-actions">
+          <button className="btn btn-ghost" onClick={() => setShareOpen(true)}>
+            <span className="mat-icon">ios_share</span>
+            <span>Compartir</span>
+          </button>
           <button className="btn btn-primary" onClick={() => setShowEditProject(true)}>
             <span className="mat-icon">edit</span>
             <span>Editar</span>
           </button>
         </div>
       </div>
+
+      {shareOpen && (
+        <ShareModal
+          scope="project"
+          projectId={project.id}
+          projectName={project.name}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
 
       {/* ── KPIs ── */}
       <div className="kpi-grid">

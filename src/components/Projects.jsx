@@ -4,6 +4,7 @@ import { StatusTag, Avatar, ProgressBar, Skeleton, EmptyState, ConfirmModal } fr
 import ProjectModal from './ProjectModal'
 import { FINAL_STATUSES } from '../lib/projectStatus'
 import ExportModal from './ExportModal'
+import ShareModal from './ShareModal'
 import PlanLimitBanner from './PlanLimitBanner'
 
 export default function Projects({ onSelectProject }) {
@@ -13,6 +14,7 @@ export default function Projects({ onSelectProject }) {
   const [filterStatus, setFilterStatus] = useState('')
   const [modal, setModal]             = useState(null)
   const [exportOpen, setExportOpen]   = useState(false) // null | 'new' | project obj
+  const [shareOpen, setShareOpen]     = useState(false)
   const [deleting, setDeleting]       = useState(null)
   const [planRefreshKey, setPlanRefreshKey] = useState(0)
   const [showArchived, setShowArchived] = useState(false)
@@ -63,6 +65,7 @@ export default function Projects({ onSelectProject }) {
           <p className="page-sub">{filtered.length} proyectos{showArchived ? ' archivados' : ''} · Q2 2026</p>
         </div>
         <div className="header-actions">
+          <button className="btn btn-ghost" onClick={() => setShareOpen(true)}><span className="mat-icon">ios_share</span><span>Compartir</span></button>
           <button className="btn btn-ghost" onClick={() => setExportOpen(true)}><span className="mat-icon">picture_as_pdf</span><span>Exportar</span></button>
           <button className="btn btn-primary" onClick={() => setModal('new')}>
             <span className="mat-icon">add</span><span>Nuevo proyecto</span>
@@ -193,6 +196,9 @@ export default function Projects({ onSelectProject }) {
 
       {/* Export Modal */}
       {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
+
+      {/* Share Modal (portfolio completo) */}
+      {shareOpen && <ShareModal scope="portfolio" onClose={() => setShareOpen(false)} />}
 
       {/* Modal */}
       {modal && (

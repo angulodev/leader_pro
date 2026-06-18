@@ -9,6 +9,8 @@ import Reports from './components/Reports'
 import Notifications from './components/Notifications'
 import Settings from './components/Settings'
 import ProfileDropdown from './components/ProfileDropdown'
+import Wall from './components/Wall'
+import SharePage from './components/SharePage'
 import { applyTheme, THEMES } from './lib/theme'
 import ExportModal from './components/ExportModal'
 import { getProjects, getActivity, getUserPrefs, supabase } from './lib/supabase'
@@ -17,6 +19,7 @@ import './index.css'
 
 const NAV = [
   { id: 'dashboard', path: '/',          icon: 'grid_view',      label: 'Dashboard' },
+  { id: 'wall',      path: '/wall',      icon: 'view_module',    label: 'Vista general' },
   { id: 'projects',  path: '/projects',  icon: 'folder_open',    label: 'Proyectos' },
   { id: 'team',      path: '/team',      icon: 'groups',         label: 'Equipo'    },
   { id: 'workload',  path: '/workload',  icon: 'balance',        label: 'Carga'     },
@@ -78,6 +81,7 @@ function AppInner() {
 
   // Current nav id from path
   const activeNav = location.pathname === '/'           ? 'dashboard'
+    : location.pathname.startsWith('/wall')             ? 'wall'
     : location.pathname.startsWith('/projects/')        ? 'projects'
     : location.pathname.startsWith('/projects')         ? 'projects'
     : location.pathname.startsWith('/team')             ? 'team'
@@ -236,6 +240,7 @@ function AppInner() {
         <main className="main">
           <Routes>
             <Route path="/"           element={<Dashboard onNavigate={p=>navigate(p==='projects'?'/projects':p==='team'?'/team':p==='workload'?'/workload':'/') } onExport={() => setExportOpen(true)} />} />
+            <Route path="/wall"       element={<Wall onSelectProject={p => navigate(`/projects/${p.id}`, { state: { project: p } })} />} />
             <Route path="/projects"   element={<Projects  onSelectProject={p => navigate(`/projects/${p.id}`, { state: { project: p } })} />} />
             <Route path="/projects/:id" element={<ProjectDetailRoute />} />
             <Route path="/team"       element={<Team />} />
@@ -312,7 +317,13 @@ function ProjectDetailRoute() {
 export default function App() {
   return (
     <BrowserRouter basename="/leader_pro">
-      <AppInner />
+      <Routes>
+        {/* Rutas públicas: nunca pasan por el guard de sesión de AppInner */}
+        <Route path="/share/portfolio/:token" element={<SharePage scope="portfolio" />} />
+        <Route path="/share/project/:token"   element={<SharePage scope="project" />} />
+        {/* Todo lo demás pasa por la app autenticada normal */}
+        <Route path="/*" element={<AppInner />} />
+      </Routes>
     </BrowserRouter>
   )
 }
