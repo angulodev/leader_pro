@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getProjects, deleteProject } from '../lib/supabase'
 import { StatusTag, Avatar, ProgressBar, Skeleton, EmptyState, ConfirmModal } from './UI'
 import ProjectModal from './ProjectModal'
@@ -10,7 +11,8 @@ import PlanLimitBanner from './PlanLimitBanner'
 export default function Projects({ onSelectProject }) {
   const [projects, setProjects]       = useState([])
   const [loading, setLoading]         = useState(true)
-  const [search, setSearch]           = useState('')
+  const [searchParams] = useSearchParams()
+  const [search, setSearch]           = useState(() => searchParams.get('q') || '')
   const [filterStatus, setFilterStatus] = useState('')
   const [modal, setModal]             = useState(null)
   const [exportOpen, setExportOpen]   = useState(false) // null | 'new' | project obj

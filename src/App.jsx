@@ -46,6 +46,8 @@ function AppInner() {
   const [activeProjects, setActiveProjects] = useState([])
   const [unreadCount,    setUnreadCount]    = useState(0)
   const [userPrefs, setUserPrefs] = useState(getUserPrefs)
+  const [navSearch, setNavSearch] = useState('')
+  const [allProjects, setAllProjects] = useState([])
 
   // Auth listener
   useEffect(() => {
@@ -64,6 +66,7 @@ function AppInner() {
     if (!session) return
     getProjects().then(p => {
       setProjectCount(p.length)
+      setAllProjects(p)
       setActiveProjects(
         p.filter(x => ['active','at-risk','planning'].includes(x.status))
           .sort((a,b) => new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at))
@@ -161,7 +164,25 @@ function AppInner() {
 
         <div className="topnav-search">
           <span className="mat-icon search-icon-nav">search</span>
-          <input type="text" placeholder="Buscar proyectos, tareas…" />
+          <input
+            type="text"
+            placeholder="Buscar proyectos, tareas…"
+            value={navSearch}
+            onChange={e => setNavSearch(e.target.value)}
+            onKeyDown={e => {
+              if (e.key !== 'Enter' || !navSearch.trim()) return
+              const q = navSearch.trim().toLowerCase()
+              const found = allProjects.find(p =>
+                p.name.toLowerCase().includes(q) || (p.client || '').toLowerCase().includes(q)
+              )
+              if (found) {
+                navigate(`/projects/${found.id}`, { state: { project: found } })
+                setNavSearch('')
+              } else {
+                navigate(`/projects?q=${encodeURIComponent(navSearch.trim())}`)
+              }
+            }}
+          />
         </div>
         <div className="topnav-actions">
           <div style={{ position: 'relative' }}>

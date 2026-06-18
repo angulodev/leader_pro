@@ -192,6 +192,16 @@ export async function getWorkload(weekStart) {
   }))
 }
 
+export async function getWorkloadAuto(weekStart) {
+  const { data, error } = await supabase.rpc('al_get_workload_auto', { p_week_start: weekStart })
+  if (error) throw error
+  return (data || []).map(w => ({
+    member_id: w.member_id, day_of_week: w.day_of_week, hours: Number(w.hours), task_label: w.task_label,
+    member:  { id: w.member_id, name: w.member_name, initials: w.member_initials, color: w.member_color },
+    project: w.project_name ? { name: w.project_name } : null,
+  }))
+}
+
 // ── KPI Dashboard ─────────────────────────────────
 export async function getDashboardKPIs() {
   const [pRes, rRes, mRes] = await Promise.all([

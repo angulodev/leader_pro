@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getWorkload, getTeamMembers } from '../lib/supabase'
+import { getWorkloadAuto, getTeamMembers } from '../lib/supabase'
 import { Skeleton } from './UI'
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie']
@@ -63,7 +63,7 @@ export default function Workload() {
     const iso = weekStartToISO(weekDate)
     Promise.resolve()
       .then(() => setLoading(true))
-      .then(() => Promise.all([getTeamMembers(), getWorkload(iso)]))
+      .then(() => Promise.all([getTeamMembers(), getWorkloadAuto(iso)]))
       .then(([m, w]) => { setMembers(m); setWorkload(w) })
       .finally(() => setLoading(false))
   }, [])
@@ -117,7 +117,7 @@ export default function Workload() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Gestión de Carga de Trabajo</h1>
-          <p className="page-sub">{wLabel} · {wRange} · {members.length} personas activas</p>
+          <p className="page-sub">{wLabel} · {wRange} · {members.length} personas activas · estimado desde tareas asignadas</p>
         </div>
         <div className="header-actions">
           <button className="btn btn-ghost" onClick={prevWeek}>
