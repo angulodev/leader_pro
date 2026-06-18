@@ -9,8 +9,10 @@ const EXPIRY_OPTIONS = [
 ]
 
 function buildShareUrl(scope, token) {
-  const base = window.location.origin
-  return scope === 'project' ? `${base}/share/project/${token}` : `${base}/share/portfolio/${token}`
+  // window.location.origin no incluye el subpath de GitHub Pages (/leader_pro/),
+  // así que se usa el BASE_URL configurado en vite.config.js para no hardcodearlo.
+  const base = window.location.origin + import.meta.env.BASE_URL
+  return scope === 'project' ? `${base}share/project/${token}` : `${base}share/portfolio/${token}`
 }
 
 export default function ShareModal({ scope, projectId, projectName, onClose }) {
