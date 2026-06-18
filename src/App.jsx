@@ -238,7 +238,7 @@ function AppInner() {
                 ? <div style={{fontSize:11,color:'var(--text-muted)',padding:'4px 10px'}}>Sin proyectos activos</div>
                 : activeProjects.map(p => (
                   <button key={p.id} className="nav-item nav-item-project"
-                    onClick={() => { navigate(`/projects/${p.id}`); if (!sidePinned) setSideOpen(false) }}>
+                    onClick={() => { navigate(`/projects/${p.id}`, { state: { project: p } }); if (!sidePinned) setSideOpen(false) }}>
                     <span className="project-dot" style={{ background: STATUS_COLOR[p.status] || 'var(--accent)' }} />
                     <span className="nav-item-project-label">{p.name}</span>
                   </button>
@@ -263,7 +263,7 @@ function AppInner() {
             <Route path="/"           element={<Dashboard onNavigate={p=>navigate(p==='projects'?'/projects':p==='team'?'/team':p==='workload'?'/workload':'/') } onExport={() => setExportOpen(true)} />} />
             <Route path="/wall"       element={<Wall onSelectProject={p => navigate(`/projects/${p.id}`, { state: { project: p } })} />} />
             <Route path="/projects"   element={<Projects  onSelectProject={p => navigate(`/projects/${p.id}`, { state: { project: p } })} />} />
-            <Route path="/projects/:id" element={<ProjectDetailRoute />} />
+            <Route path="/projects/:id" element={<ProjectDetailRoute key={location.pathname} />} />
             <Route path="/team"       element={<Team />} />
             <Route path="/workload"   element={<Workload />} />
             <Route path="/reports"    element={<Reports />} />
@@ -295,21 +295,22 @@ function ProjectDetailRoute() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const [project, setProject] = useState(location.state?.project || null)
-  const [loading, setLoading] = useState(!location.state?.project)
+  const stateProject = location.state?.project?.id === id ? location.state.project : null
+  const [fetchedProject, setFetchedProject] = useState(null)
+  const [loading, setLoading] = useState(!stateProject)
+
+  const project = stateProject || fetchedProject
 
   useEffect(() => {
-    if (!project) {
-      Promise.resolve()
-        .then(() => setLoading(true))
-        .then(() => getProjects())
-        .then(projects => {
-          const found = projects.find(p => p.id === id)
-          if (found) setProject(found)
-          else navigate('/projects')
-        }).finally(() => setLoading(false))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate es estable; project se omite a propósito para no re-disparar el fetch cuando project pasa de null a su valor
+    if (stateProject) return // ya tenemos el dato correcto, no hace falta refetch
+    getProjects()
+      .then(projects => {
+        const found = projects.find(p => p.id === id)
+        if (found) setFetchedProject(found)
+        else navigate('/projects')
+      })
+      .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate y stateProject son derivados estables de id; solo debe re-disparar cuando cambia el id de la ruta
   }, [id])
 
   if (loading) return (
@@ -327,7 +328,7 @@ function ProjectDetailRoute() {
       onProjectUpdated={() => {
         getProjects().then(projects => {
           const found = projects.find(p => p.id === id)
-          if (found) setProject(found)
+          if (found) setFetchedProject(found)
         })
       }}
     />
