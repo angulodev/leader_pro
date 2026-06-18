@@ -358,6 +358,14 @@ export async function getSharedProject(token) {
   return data
 }
 
+export async function getSharedPortfolioProject(token, projectId) {
+  const { data, error } = await supabase.rpc('al_get_shared_portfolio_project', {
+    p_token: token, p_project_id: projectId,
+  })
+  if (error) throw error
+  return data
+}
+
 // ── User preferences (localStorage) ──────────────
 const PREFS_KEY = 'alp_user_prefs'
 export function getUserPrefs() {

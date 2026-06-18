@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getSharedPortfolio, getSharedProject } from '../lib/supabase'
+import { getSharedPortfolio, getSharedProject, getSharedPortfolioProject } from '../lib/supabase'
 import PortfolioWall from './PortfolioWall'
 import { STATUS_CFG } from '../lib/projectStatus'
 import { Avatar, EmptyState, StatusTag } from './UI'
@@ -23,7 +23,7 @@ function PublicHeader({ label }) {
   )
 }
 
-function PublicProjectDetail({ data }) {
+function PublicProjectDetail({ data, onBack }) {
   const { project: p, tasks, risks } = data
   const cfg = STATUS_CFG[p.status] || STATUS_CFG.backlog
   const grouped = {}
@@ -35,6 +35,12 @@ function PublicProjectDetail({ data }) {
 
   return (
     <div>
+      {onBack && (
+        <button className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={onBack}>
+          <span className="mat-icon">arrow_back</span>
+          <span>Volver al portfolio</span>
+        </button>
+      )}
       <div className="card" style={{ padding: 20, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
@@ -117,6 +123,13 @@ export default function SharePage({ scope }) {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Selección de proyecto dentro de un portfolio compartido (navegación interna,
+  // sin cambiar de URL — reusa el mismo token de portfolio para pedir el detalle).
+  const [selectedProjectId, setSelectedProjectId] = useState(null)
+  const [projectDetail, setProjectDetail] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState(null)
+
   useEffect(() => {
     document.documentElement.removeAttribute('data-theme')
     const fetcher = scope === 'project' ? getSharedProject : getSharedPortfolio
@@ -125,6 +138,22 @@ export default function SharePage({ scope }) {
       .catch(err => setError(err.message || 'unknown'))
       .finally(() => setLoading(false))
   }, [token, scope])
+
+  function handleSelectProject(project) {
+    setSelectedProjectId(project.id)
+    setDetailLoading(true)
+    setDetailError(null)
+    getSharedPortfolioProject(token, project.id)
+      .then(setProjectDetail)
+      .catch(err => setDetailError(err.message || 'unknown'))
+      .finally(() => setDetailLoading(false))
+  }
+
+  function handleBackToPortfolio() {
+    setSelectedProjectId(null)
+    setProjectDetail(null)
+    setDetailError(null)
+  }
 
   if (loading) {
     return (
@@ -157,6 +186,22 @@ export default function SharePage({ scope }) {
       <div className="wall-public-body">
         {scope === 'project' ? (
           <PublicProjectDetail data={data} />
+        ) : selectedProjectId ? (
+          detailLoading ? (
+            <div className="wall-error-state">
+              <span className="mat-icon">progress_activity</span>
+            </div>
+          ) : detailError ? (
+            <div>
+              <button className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={handleBackToPortfolio}>
+                <span className="mat-icon">arrow_back</span>
+                <span>Volver al portfolio</span>
+              </button>
+              <EmptyState icon="error_outline" title="No se pudo cargar el proyecto" sub="Intenta volver al portfolio y entrar de nuevo." />
+            </div>
+          ) : (
+            <PublicProjectDetail data={projectDetail} onBack={handleBackToPortfolio} />
+          )
         ) : (
           <>
             <div className="page-header">
@@ -165,7 +210,7 @@ export default function SharePage({ scope }) {
                 <p className="page-sub">{data.projects.length} proyectos · vista de solo lectura</p>
               </div>
             </div>
-            <PortfolioWall projects={data.projects} readOnly />
+            <PortfolioWall projects={data.projects} readOnly onSelectProject={handleSelectProject} />
           </>
         )}
       </div>
